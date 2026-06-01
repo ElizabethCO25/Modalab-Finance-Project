@@ -96,7 +96,11 @@ function renderEntries(entries){
   tbody.querySelectorAll('button[data-id]').forEach(b=>b.addEventListener('click', ev=>deleteEntry(ev.currentTarget.dataset.id)));
 }
 
-function monthKey(dateStr){ const d=new Date(dateStr); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+function monthKey(dateStr){ 
+  // Parse en zona horaria local para evitar desfase
+  const [y, m, day] = dateStr.split('-').map(Number);
+  return `${y}-${String(m).padStart(2,'0')}`; 
+}
 
 function computeMonthlyTotals(entries){
   const map = {}; // key -> {ingresos, egresos}
