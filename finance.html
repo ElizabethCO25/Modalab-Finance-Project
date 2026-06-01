@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Registro de Ingresos y Egresos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/finance.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+<div class="container py-4">
+  <h1 class="mb-3">Registro de Ingresos y Egresos</h1>
+  <div class="device-banner alert alert-primary d-none" id="deviceBanner">
+    Interfaz adaptada para iPhone y iPad: vista compacta, botones grandes y resumen rápido.
+  </div>
+
+  <div class="mb-4">
+    <ul class="nav nav-tabs" id="financeTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="main-tab" data-bs-toggle="tab" data-bs-target="#mainTab" type="button" role="tab" aria-controls="mainTab" aria-selected="true">Registro</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#historyTab" type="button" role="tab" aria-controls="historyTab" aria-selected="false">Filtrar y ver historial</button>
+      </li>
+    </ul>
+  </div>
+
+  <div class="tab-content" id="financeTabContent">
+    <div class="tab-pane fade show active" id="mainTab" role="tabpanel" aria-labelledby="main-tab">
+      <div class="row">
+        <div class="col-lg-5">
+          <div class="card mb-3">
+            <div class="card-body">
+              <h5 class="card-title">Nuevo registro</h5>
+              <form id="entryForm">
+                <div class="mb-2">
+                  <label class="form-label">Fecha</label>
+                  <input type="date" id="date" class="form-control" required>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label">Tipo</label>
+                  <select id="type" class="form-select">
+                    <option value="ingreso">Ingreso</option>
+                    <option value="egreso">Egreso</option>
+                  </select>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label">Categoría</label>
+                  <div class="d-flex gap-2">
+                    <select id="category" class="form-select">
+                      <option value="Sueldo">Sueldo</option>
+                      <option value="Ventas">Ventas</option>
+                      <option value="Comida">Comida</option>
+                      <option value="Transporte">Transporte</option>
+                      <option value="Servicios">Servicios</option>
+                      <option value="Otra">Otra...</option>
+                    </select>
+                    <input type="text" id="categoryCustom" class="form-control" placeholder="Si selecciona 'Otra', especifique" style="display:none;">
+                  </div>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label">Monto</label>
+                  <input type="number" step="0.01" id="amount" class="form-control" required>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label">Descripción</label>
+                  <input type="text" id="description" class="form-control" placeholder="Opcional">
+                </div>
+                <div class="d-flex gap-2">
+                  <button class="btn btn-primary" id="saveBtn">Guardar</button>
+                  <button type="button" class="btn btn-secondary" id="clearBtn">Limpiar</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-7">
+          <div class="card mb-3">
+            <div class="card-body">
+              <h5 class="card-title">Resumen mensual</h5>
+              <div id="summary" class="mb-3"></div>
+              <canvas id="monthChart" height="120"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane fade" id="historyTab" role="tabpanel" aria-labelledby="history-tab">
+      <div class="row">
+        <div class="col-12">
+          <div class="card mb-3">
+            <div class="card-body">
+              <h5 class="card-title">Filtrar y exportar</h5>
+              <div class="mb-2 d-flex gap-2 align-items-center flex-wrap">
+                <input type="month" id="filterMonth" class="form-control" title="Filtrar por mes">
+                <input type="date" id="filterStart" class="form-control" title="Fecha inicio">
+                <input type="date" id="filterEnd" class="form-control" title="Fecha fin">
+                <select id="filterCategory" class="form-select">
+                  <option value="">Todas las categorías</option>
+                  <option value="Sueldo">Sueldo</option>
+                  <option value="Ventas">Ventas</option>
+                  <option value="Comida">Comida</option>
+                  <option value="Transporte">Transporte</option>
+                  <option value="Servicios">Servicios</option>
+                  <option value="Otra">Otra</option>
+                </select>
+              </div>
+              <div class="mb-2 d-flex gap-2 flex-wrap">
+                <button class="btn btn-outline-primary" id="applyFilter">Aplicar</button>
+                <button class="btn btn-outline-success" id="exportCsv">Exportar CSV</button>
+                <button class="btn btn-outline-dark" id="printReport">Imprimir</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Historial de registros</h5>
+              <div class="table-responsive">
+                <table class="table table-sm" id="entriesTable">
+                  <thead>
+                    <tr><th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Monto</th><th>Descripción</th><th></th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer class="mt-4 text-muted small">Diseño listo para abrir en Visual Studio / Visual Studio Code.</footer>
+</div>
+
+<script src="assets/js/finance.js"></script>
+</body>
+</html>
