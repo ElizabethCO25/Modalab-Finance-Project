@@ -5,9 +5,12 @@ const STORAGE_KEY = 'finances_entries_v1';
 const SETTINGS_KEY = 'finances_settings_v1';
 const entriesRef = db.collection('entries');
 const settingsRef = db.collection('settings').doc('config');
-const defaultCategories = ['Sueldo', 'Ventas', 'Comida', 'Transporte', 'Servicios'];
+const defaultCategories = { 
+  ingresos: ['Sueldo', 'Ventas', 'Freelance', 'Otros'], 
+  egresos: ['Comida', 'Transporte', 'Servicios', 'Otros'] 
+};
 const CHART_WINDOW_SIZE = 3;
-let userSettings = { categories: [...defaultCategories], showFutureMonths: true };
+let userSettings = { categories: { ingresos: [...defaultCategories.ingresos], egresos: [...defaultCategories.egresos] }, showFutureMonths: true };
 let chartCenter = null;
 let monthChart = null;
 
@@ -101,14 +104,21 @@ function saveSettingsLocal(settings){
 }
 
 async function loadSettings(){
-  const defaults = { categories: [...defaultCategories], showFutureMonths: true };
+  const defaults = { categories: { ingresos: [...defaultCategories.ingresos], egresos: [...defaultCategories.egresos] }, showFutureMonths: true };
   try {
     const doc = await settingsRef.get();
     if(doc.exists){
       const data = doc.data();
       userSettings = { ...defaults, ...data };
-      if(!Array.isArray(userSettings.categories) || userSettings.categories.length === 0){
-        userSettings.categories = [...defaultCategories];
+      // Migrar formato antiguo (array) al nuevo (object con ingresos/egresos)
+      if(Array.isArray(userSettings.categories)){
+        userSettings.categories = { ingresos: [...userSettings.categories], egresos: [...defaultCategories.egresos] };
+      }
+      if(!userSettings.categories.ingresos || userSettings.categories.ingresos.length === 0){
+        userSettings.categories.ingresos = [...defaultCategories.ingresos];
+      }
+      if(!userSettings.categories.egresos || userSettings.categories.egresos.length === 0){
+        userSettings.categories.egresos = [...defaultCategories.egresos];
       }
       return;
     }
@@ -118,6 +128,10 @@ async function loadSettings(){
   const local = loadSettingsLocal();
   if(local){
     userSettings = { ...defaults, ...local };
+    // Migrar formato antiguo si es necesario
+    if(Array.isArray(userSettings.categories)){
+      userSettings.categories = { ingresos: [...userSettings.categories], egresos: [...defaultCategories.egresos] };
+    }
   } else {
     userSettings = { ...defaults };
   }
@@ -132,21 +146,27 @@ async function saveSettings(){
   }
 }
 
-function populateCategorySelects(categories){
+function populateCategorySelects(type = 'ingreso'){
   const categorySelect = document.getElementById('category');
   const filterCategory = document.getElementById('filterCategory');
+  const categories = userSettings.categories[type] || [];
+  
   categorySelect.innerHTML = '';
   filterCategory.innerHTML = '<option value="">Todas las categorías</option>';
+  
   categories.forEach(cat => {
-    const option = document.createElement('option');
-    option.value = cat;
-    option.textContent = cat;
-    categorySelect.appendChild(option);
-    const optionFilter = document.createElement('option');
-    optionFilter.value = cat;
-    optionFilter.textContent = cat;
-    filterCategory.appendChild(optionFilter);
+    if(cat !== 'Otros'){
+      const option = document.createElement('option');
+      option.value = cat;
+      option.textContent = cat;
+      categorySelect.appendChild(option);
+      const optionFilter = document.createElement('option');
+      optionFilter.value = cat;
+      optionFilter.textContent = cat;
+      filterCategory.appendChild(optionFilter);
+    }
   });
+  
   const optionOther = document.createElement('option');
   optionOther.value = 'Otra';
   optionOther.textContent = 'Otra...';
@@ -156,10 +176,18 @@ function populateCategorySelects(categories){
 function renderCategoryList(){
   const list = document.getElementById('categoryList');
   list.innerHTML = '';
-  userSettings.categories.forEach(cat => {
+  const categoryType = document.getElementById('adminCategoryType').value;
+  const categories = userSettings.categories[categoryType] || [];
+  
+  const typeLabel = document.createElement('div');
+  typeLabel.className = 'mb-2 fw-bold text-muted small';
+  typeLabel.textContent = categoryType === 'ingresos' ? 'Categorías de Ingresos' : 'Categorías de Egresos';
+  list.appendChild(typeLabel);
+  
+  categories.forEach(cat => {
     const item = document.createElement('li');
-    item.className = 'list-group-item';
-    item.innerHTML = `<span>${cat}</span><button class="btn btn-sm btn-outline-danger remove-category" data-cat="${cat}">Eliminar</button>`;
+    item.className = 'list-group-item d-flex justify-content-between align-items-center';
+    item.innerHTML = `<span>${cat}</span><button class="btn btn-sm btn-outline-danger remove-category" data-cat="${cat}" data-type="${categoryType}">Eliminar</button>`;
     list.appendChild(item);
   });
 }
@@ -411,35 +439,43 @@ function renderAdminOptions(){
   document.getElementById('enableFutureMonths').checked = !!userSettings.showFutureMonths;
   buildMonthOptions();
   setChartCenter(getCurrentCenter().year, getCurrentCenter().month);
+  populateCategorySelects('ingreso');
 }
 
 async function addCategory(){
   const input = document.getElementById('newCategoryInput');
   const value = input.value.trim();
+  const categoryType = document.getElementById('adminCategoryType').value;
+  
   if (!value) return;
-  if (userSettings.categories.includes(value)){
+  if (userSettings.categories[categoryType].includes(value)){
     return alert('La categoría ya existe');
   }
-  userSettings.categories.push(value);
+  
+  userSettings.categories[categoryType].push(value);
   await saveSettings();
-  populateCategorySelects(userSettings.categories);
-  renderAdminOptions();
+  populateCategorySelects(categoryType);
+  renderCategoryList();
   input.value = '';
 }
 
-async function removeCategory(category){
-  userSettings.categories = userSettings.categories.filter(c => c !== category);
+async function removeCategory(category, type){
+  userSettings.categories[type] = userSettings.categories[type].filter(c => c !== category);
   await saveSettings();
-  populateCategorySelects(userSettings.categories);
-  renderAdminOptions();
+  populateCategorySelects(type);
+  renderCategoryList();
 }
 
 function attachAdminEvents(){
   document.getElementById('addCategoryBtn').addEventListener('click', addCategory);
+  document.getElementById('adminCategoryType').addEventListener('change', ev => {
+    renderCategoryList();
+  });
   document.getElementById('categoryList').addEventListener('click', async ev => {
     if(ev.target.classList.contains('remove-category')){
       const category = ev.target.dataset.cat;
-      await removeCategory(category);
+      const type = ev.target.dataset.type;
+      await removeCategory(category, type);
     }
   });
   document.getElementById('enableFutureMonths').addEventListener('change', async ev => {
@@ -464,10 +500,17 @@ function attachAdminEvents(){
 }
 
 async function init(){
+  const typeSelect = document.getElementById('type');
+  
+  typeSelect.addEventListener('change', ev => {
+    populateCategorySelects(ev.target.value);
+  });
+  
   document.getElementById('category').addEventListener('change', ev => {
     const show = ev.target.value === 'Otra';
     document.getElementById('categoryCustom').style.display = show ? 'block' : 'none';
   });
+  
   document.getElementById('entryForm').addEventListener('submit', addEntry);
   document.getElementById('clearBtn').addEventListener('click', () => document.getElementById('entryForm').reset());
   document.getElementById('applyFilter').addEventListener('click', applyFilter);
@@ -475,7 +518,7 @@ async function init(){
   document.getElementById('printReport').addEventListener('click', printReport);
   attachAdminEvents();
   await loadSettings();
-  populateCategorySelects(userSettings.categories);
+  populateCategorySelects('ingreso');
   renderAdminOptions();
   await refreshEntries();
 }

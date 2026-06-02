@@ -112,6 +112,15 @@
             <div class="card-body admin-panel">
               <h5 class="card-title">Admin - Personalización</h5>
               <p>Gestiona las categorías disponibles en el formulario y los filtros. Estos cambios se guardan en Firebase para todos los usuarios.</p>
+              
+              <div class="mb-3">
+                <label class="form-label">Tipo de categoría</label>
+                <select id="adminCategoryType" class="form-select">
+                  <option value="ingresos">Ingresos</option>
+                  <option value="egresos">Egresos</option>
+                </select>
+              </div>
+              
               <div class="mb-3">
                 <label class="form-label">Nueva categoría</label>
                 <div class="d-flex gap-2 flex-wrap">
@@ -119,10 +128,12 @@
                   <button class="btn btn-primary" id="addCategoryBtn">Agregar</button>
                 </div>
               </div>
+              
               <div class="mb-3">
                 <label class="form-label">Categorías actuales</label>
                 <ul class="list-group" id="categoryList"></ul>
               </div>
+              
               <div class="mb-3">
                 <label class="form-label">Configuraciones</label>
                 <div class="form-check">
