@@ -146,10 +146,16 @@ async function saveSettings(){
   }
 }
 
+function getNormalizedType(typeValue){
+  // Convierte "ingreso"/"egreso" a "ingresos"/"egresos"
+  return typeValue === 'egreso' ? 'egresos' : 'ingresos';
+}
+
 function populateCategorySelects(type = 'ingreso'){
+  const normalizedType = getNormalizedType(type);
   const categorySelect = document.getElementById('category');
   const filterCategory = document.getElementById('filterCategory');
-  const categories = userSettings.categories[type] || [];
+  const categories = userSettings.categories[normalizedType] || [];
   
   categorySelect.innerHTML = '';
   filterCategory.innerHTML = '<option value="">Todas las categorías</option>';
