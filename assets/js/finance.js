@@ -178,26 +178,43 @@ function buildMonthOptions(){
   select.innerHTML = '';
   const now = new Date();
   const current = { year: now.getFullYear(), month: now.getMonth() + 1 };
+  const selected = chartCenter || current;
   const rangeStart = monthOffset(current, -6);
   const rangeEnd = userSettings.showFutureMonths ? monthOffset(current, 6) : current;
+  const months = [];
   let pointer = rangeStart;
+
   while(pointer.year < rangeEnd.year || (pointer.year === rangeEnd.year && pointer.month <= rangeEnd.month)){
-    const option = document.createElement('option');
-    option.value = `${pointer.year}-${String(pointer.month).padStart(2,'0')}`;
-    option.textContent = formatMonthLabel(pointer.year, pointer.month);
-    select.appendChild(option);
+    months.push({ year: pointer.year, month: pointer.month });
     if(pointer.month === 12){ pointer = { year: pointer.year + 1, month: 1 }; }
     else { pointer = { year: pointer.year, month: pointer.month + 1 }; }
   }
+
+  const selectedKey = `${selected.year}-${String(selected.month).padStart(2,'0')}`;
+  if(!months.some(m => `${m.year}-${String(m.month).padStart(2,'0')}` === selectedKey)){
+    months.push(selected);
+  }
+
+  months.sort((a, b) => a.year === b.year ? a.month - b.month : a.year - b.year);
+  months.forEach(m => {
+    const option = document.createElement('option');
+    option.value = `${m.year}-${String(m.month).padStart(2,'0')}`;
+    option.textContent = formatMonthLabel(m.year, m.month);
+    select.appendChild(option);
+  });
 }
 
 function updateChartCenterSelect(){
   const select = document.getElementById('chartCenterMonth');
   const center = getCurrentCenter();
   const value = `${center.year}-${String(center.month).padStart(2,'0')}`;
-  if(Array.from(select.options).some(opt => opt.value === value)){
-    select.value = value;
+  if(!Array.from(select.options).some(opt => opt.value === value)){
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = formatMonthLabel(center.year, center.month);
+    select.appendChild(option);
   }
+  select.value = value;
 }
 
 function setChartCenter(year, month){
