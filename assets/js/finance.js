@@ -2,11 +2,49 @@
 // Usa Firestore en la nube y hace fallback a localStorage si Firestore no está disponible.
 
 const STORAGE_KEY = 'finances_entries_v1';
+const SETTINGS_KEY = 'finances_settings_v1';
 const entriesRef = db.collection('entries');
+const settingsRef = db.collection('settings').doc('config');
+const defaultCategories = ['Sueldo', 'Ventas', 'Comida', 'Transporte', 'Servicios'];
+const CHART_WINDOW_SIZE = 3;
+let userSettings = { categories: [...defaultCategories], showFutureMonths: true };
+let chartCenter = null;
+let monthChart = null;
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
 
-/* ---------- Acceso a datos: Firestore con fallback ---------- */
+function monthKey(dateStr){
+  const [y, m] = dateStr.split('-').map(Number);
+  return `${y}-${String(m).padStart(2, '0')}`;
+}
+
+function formatMonthLabel(year, month){
+  return `${String(month).padStart(2,'0')}/${year}`;
+}
+
+function parseYearMonth(dateStr){
+  const [y, m] = dateStr.split('-').map(Number);
+  return { year: y, month: m };
+}
+
+function monthOffset(base, offset){
+  let year = base.year;
+  let month = base.month + offset;
+  while(month < 1){ month += 12; year -= 1; }
+  while(month > 12){ month -= 12; year += 1; }
+  return { year, month };
+}
+
+function getCurrentCenter(){
+  if(chartCenter) return chartCenter;
+  const now = new Date();
+  return { year: now.getFullYear(), month: now.getMonth() + 1 };
+}
+
+function compareDatesDesc(a, b){
+  return b.date.localeCompare(a.date);
+}
+
 async function apiLoadEntries(){
   try {
     const snapshot = await entriesRef.orderBy('date', 'desc').get();
@@ -44,24 +82,153 @@ async function apiDeleteEntry(id){
   }
 }
 
-/* ---------- localStorage helpers (fallback) ---------- */
-function loadEntriesLocal() {
+function loadEntriesLocal(){
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
   catch (e) { return []; }
 }
 
-function saveEntriesLocal(entries) {
+function saveEntriesLocal(entries){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
 }
 
-/* ---------- CRUD de la UI ---------- */
+function loadSettingsLocal(){
+  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null'); }
+  catch (e) { return null; }
+}
+
+function saveSettingsLocal(settings){
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+async function loadSettings(){
+  const defaults = { categories: [...defaultCategories], showFutureMonths: true };
+  try {
+    const doc = await settingsRef.get();
+    if(doc.exists){
+      const data = doc.data();
+      userSettings = { ...defaults, ...data };
+      if(!Array.isArray(userSettings.categories) || userSettings.categories.length === 0){
+        userSettings.categories = [...defaultCategories];
+      }
+      return;
+    }
+  } catch (e) {
+    console.warn('No se pudo cargar configuración desde Firestore', e.message || e);
+  }
+  const local = loadSettingsLocal();
+  if(local){
+    userSettings = { ...defaults, ...local };
+  } else {
+    userSettings = { ...defaults };
+  }
+}
+
+async function saveSettings(){
+  try {
+    await settingsRef.set(userSettings, { merge: true });
+  } catch (e) {
+    console.warn('No se pudo guardar configuración en Firestore', e.message || e);
+    saveSettingsLocal(userSettings);
+  }
+}
+
+function populateCategorySelects(categories){
+  const categorySelect = document.getElementById('category');
+  const filterCategory = document.getElementById('filterCategory');
+  categorySelect.innerHTML = '';
+  filterCategory.innerHTML = '<option value="">Todas las categorías</option>';
+  categories.forEach(cat => {
+    const option = document.createElement('option');
+    option.value = cat;
+    option.textContent = cat;
+    categorySelect.appendChild(option);
+    const optionFilter = document.createElement('option');
+    optionFilter.value = cat;
+    optionFilter.textContent = cat;
+    filterCategory.appendChild(optionFilter);
+  });
+  const optionOther = document.createElement('option');
+  optionOther.value = 'Otra';
+  optionOther.textContent = 'Otra...';
+  categorySelect.appendChild(optionOther);
+}
+
+function renderCategoryList(){
+  const list = document.getElementById('categoryList');
+  list.innerHTML = '';
+  userSettings.categories.forEach(cat => {
+    const item = document.createElement('li');
+    item.className = 'list-group-item';
+    item.innerHTML = `<span>${cat}</span><button class="btn btn-sm btn-outline-danger remove-category" data-cat="${cat}">Eliminar</button>`;
+    list.appendChild(item);
+  });
+}
+
+function getChartWindow(center){
+  const half = Math.floor(CHART_WINDOW_SIZE / 2);
+  const months = [];
+  for(let offset = -half; offset <= half; offset++){
+    months.push(monthOffset(center, offset));
+  }
+  return months;
+}
+
+function buildMonthOptions(){
+  const select = document.getElementById('chartCenterMonth');
+  select.innerHTML = '';
+  const now = new Date();
+  const current = { year: now.getFullYear(), month: now.getMonth() + 1 };
+  const rangeStart = monthOffset(current, -6);
+  const rangeEnd = userSettings.showFutureMonths ? monthOffset(current, 6) : current;
+  let pointer = rangeStart;
+  while(pointer.year < rangeEnd.year || (pointer.year === rangeEnd.year && pointer.month <= rangeEnd.month)){
+    const option = document.createElement('option');
+    option.value = `${pointer.year}-${String(pointer.month).padStart(2,'0')}`;
+    option.textContent = formatMonthLabel(pointer.year, pointer.month);
+    select.appendChild(option);
+    if(pointer.month === 12){ pointer = { year: pointer.year + 1, month: 1 }; }
+    else { pointer = { year: pointer.year, month: pointer.month + 1 }; }
+  }
+}
+
+function updateChartCenterSelect(){
+  const select = document.getElementById('chartCenterMonth');
+  const center = getCurrentCenter();
+  const value = `${center.year}-${String(center.month).padStart(2,'0')}`;
+  if(Array.from(select.options).some(opt => opt.value === value)){
+    select.value = value;
+  }
+}
+
+function setChartCenter(year, month){
+  chartCenter = { year, month };
+  updateChartCenterSelect();
+  refreshChart();
+}
+
+function refreshChart(){
+  const entries = window.latestEntries || [];
+  drawCharts(entries);
+}
+
+async function refreshEntries(){
+  const entries = await apiLoadEntries();
+  window.latestEntries = entries;
+  renderEntries(entries);
+  await updateSummary(entries);
+}
+
+function safeDateCompare(date, boundary){
+  return date.localeCompare(boundary);
+}
+
 async function addEntry(e){
   e.preventDefault();
   const date = document.getElementById('date').value;
   const type = document.getElementById('type').value;
   let category = document.getElementById('category').value;
   const custom = document.getElementById('categoryCustom').value.trim();
-  if (category === 'Otra' && custom) category = custom;
+  if(category === 'Otra' && custom) category = custom;
   const amount = parseFloat(document.getElementById('amount').value) || 0;
   const description = document.getElementById('description').value.trim();
 
@@ -93,7 +260,7 @@ async function deleteEntry(id){
 function renderEntries(entries){
   const tbody = document.querySelector('#entriesTable tbody');
   tbody.innerHTML = '';
-  const sorted = entries.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+  const sorted = entries.slice().sort(compareDatesDesc);
   for (const e of sorted) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -108,116 +275,89 @@ function renderEntries(entries){
   tbody.querySelectorAll('button[data-id]').forEach(b => b.addEventListener('click', ev => deleteEntry(ev.currentTarget.dataset.id)));
 }
 
-function monthKey(dateStr){
-  const [y, m] = dateStr.split('-').map(Number);
-  return `${y}-${String(m).padStart(2, '0')}`;
-}
-
 function computeMonthlyTotals(entries){
   const map = {};
-  for (const e of entries) {
-    const k = monthKey(e.date);
-    if (!map[k]) map[k] = { ingresos: 0, egresos: 0 };
-    if (e.type === 'ingreso') map[k].ingresos += Number(e.amount);
-    else map[k].egresos += Number(e.amount);
-  }
+  entries.forEach(e => {
+    const key = monthKey(e.date);
+    if(!map[key]) map[key] = { ingresos: 0, egresos: 0 };
+    if(e.type === 'ingreso') map[key].ingresos += Number(e.amount);
+    else map[key].egresos += Number(e.amount);
+  });
   return map;
-}
-
-let monthChart = null;
-
-async function refreshEntries(){
-  const entries = await apiLoadEntries();
-  renderEntries(entries);
-  await updateSummary(entries);
 }
 
 async function updateSummary(entries){
   if (!entries) entries = await apiLoadEntries();
+  window.latestEntries = entries;
   const map = computeMonthlyTotals(entries);
   const filterMonth = document.getElementById('filterMonth').value;
   const summaryEl = document.getElementById('summary');
 
   if (filterMonth) {
-    const key = filterMonth;
-    const data = map[key] || { ingresos: 0, egresos: 0 };
-    const balance = (data.ingresos || 0) - (data.egresos || 0);
-    summaryEl.innerHTML = `<div class="row"><div class="col"><strong>Ingresos:</strong> ${ (data.ingresos || 0).toFixed(2) }</div><div class="col"><strong>Egresos:</strong> ${(data.egresos || 0).toFixed(2)}</div><div class="col"><strong>Balance:</strong> ${balance.toFixed(2)}</div></div>`;
+    const data = map[filterMonth] || { ingresos: 0, egresos: 0 };
+    const balance = data.ingresos - data.egresos;
+    summaryEl.innerHTML = `<div class="row"><div class="col"><strong>Ingresos:</strong> ${data.ingresos.toFixed(2)}</div><div class="col"><strong>Egresos:</strong> ${data.egresos.toFixed(2)}</div><div class="col"><strong>Balance:</strong> ${balance.toFixed(2)}</div></div>`;
   } else {
-    const totalIn = entries.reduce((s, e) => s + (e.type === 'ingreso' ? Number(e.amount) : 0), 0);
-    const totalOut = entries.reduce((s, e) => s + (e.type === 'egreso' ? Number(e.amount) : 0), 0);
+    const totalIn = entries.reduce((sum, e) => sum + (e.type === 'ingreso' ? Number(e.amount) : 0), 0);
+    const totalOut = entries.reduce((sum, e) => sum + (e.type === 'egreso' ? Number(e.amount) : 0), 0);
     summaryEl.innerHTML = `<div class="row"><div class="col"><strong>Total ingresos:</strong> ${totalIn.toFixed(2)}</div><div class="col"><strong>Total egresos:</strong> ${totalOut.toFixed(2)}</div><div class="col"><strong>Balance:</strong> ${(totalIn - totalOut).toFixed(2)}</div></div>`;
   }
 
-  drawCharts(entries);
+  refreshChart();
 }
 
 function drawCharts(entries){
-  const filterMonth = document.getElementById('filterMonth').value;
-  const labels = [];
-  const incomes = [];
-  const expenses = [];
   const map = computeMonthlyTotals(entries);
-
-  if (filterMonth) {
-    const [y, m] = filterMonth.split('-').map(Number);
-    const key = `${y}-${String(m).padStart(2, '0')}`;
-    labels.push(`${String(m).padStart(2, '0')}/${y}`);
-    const d = map[key] || { ingresos: 0, egresos: 0 };
-    incomes.push(d.ingresos);
-    expenses.push(d.egresos);
-  } else {
-    const now = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const dt = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
-      labels.push(`${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}`);
-      const d = map[key] || { ingresos: 0, egresos: 0 };
-      incomes.push(d.ingresos);
-      expenses.push(d.egresos);
-    }
-  }
+  const center = getCurrentCenter();
+  const windowMonths = getChartWindow(center);
+  const labels = windowMonths.map(m => formatMonthLabel(m.year, m.month));
+  const incomes = windowMonths.map(m => {
+    const key = `${m.year}-${String(m.month).padStart(2,'0')}`;
+    return (map[key] && map[key].ingresos) || 0;
+  });
+  const expenses = windowMonths.map(m => {
+    const key = `${m.year}-${String(m.month).padStart(2,'0')}`;
+    return (map[key] && map[key].egresos) || 0;
+  });
 
   const ctx = document.getElementById('monthChart').getContext('2d');
-  if (monthChart) monthChart.destroy();
+  if(monthChart) monthChart.destroy();
   monthChart = new Chart(ctx, {
     type: 'bar',
     data: {
       labels,
       datasets: [
-        { label: 'Ingresos', data: incomes, backgroundColor: 'rgba(40,167,69,0.75)' },
-        { label: 'Egresos', data: expenses, backgroundColor: 'rgba(220,53,69,0.75)' }
+        { label: 'Ingresos', data: incomes, backgroundColor: 'rgba(40,167,69,0.8)' },
+        { label: 'Egresos', data: expenses, backgroundColor: 'rgba(220,53,69,0.8)' }
       ]
     },
     options: {
       responsive: true,
       plugins: { legend: { position: 'top' } },
-      scales: { y: { beginAtZero: true } }
+      scales: {
+        y: { beginAtZero: true },
+        x: { grid: { display: false } }
+      }
     }
   });
 }
 
-async function applyFilter(){
+function applyFilter(){
   const filterMonth = document.getElementById('filterMonth').value;
   const start = document.getElementById('filterStart').value;
   const end = document.getElementById('filterEnd').value;
   const category = document.getElementById('filterCategory').value;
-  let rows = await apiLoadEntries();
+  let rows = window.latestEntries || [];
 
   if (filterMonth) {
-    const [y, m] = filterMonth.split('-').map(Number);
-    rows = rows.filter(e => {
-      const d = new Date(e.date);
-      return d.getFullYear() === y && (d.getMonth() + 1) === m;
-    });
+    rows = rows.filter(e => monthKey(e.date) === filterMonth);
+    setChartCenter(parseYearMonth(filterMonth).year, parseYearMonth(filterMonth).month);
   }
   if (start) {
-    const s = new Date(start);
-    rows = rows.filter(e => new Date(e.date) >= s);
+    rows = rows.filter(e => safeDateCompare(e.date, start) >= 0);
   }
   if (end) {
-    const ed = new Date(end);
-    rows = rows.filter(e => new Date(e.date) <= ed);
+    rows = rows.filter(e => safeDateCompare(e.date, end) <= 0);
   }
   if (category) {
     rows = rows.filter(e => e.category === category);
@@ -225,8 +365,8 @@ async function applyFilter(){
 
   renderEntries(rows);
   drawCharts(rows);
-  const totalIn = rows.reduce((s, e) => s + (e.type === 'ingreso' ? Number(e.amount) : 0), 0);
-  const totalOut = rows.reduce((s, e) => s + (e.type === 'egreso' ? Number(e.amount) : 0), 0);
+  const totalIn = rows.reduce((sum, e) => sum + (e.type === 'ingreso' ? Number(e.amount) : 0), 0);
+  const totalOut = rows.reduce((sum, e) => sum + (e.type === 'egreso' ? Number(e.amount) : 0), 0);
   document.getElementById('summary').innerHTML = `<div class="row"><div class="col"><strong>Ingresos:</strong> ${totalIn.toFixed(2)}</div><div class="col"><strong>Egresos:</strong> ${totalOut.toFixed(2)}</div><div class="col"><strong>Balance:</strong> ${(totalIn - totalOut).toFixed(2)}</div></div>`;
 }
 
@@ -249,18 +389,77 @@ function exportCsv(){
 
 function printReport(){ window.print(); }
 
+function renderAdminOptions(){
+  renderCategoryList();
+  document.getElementById('enableFutureMonths').checked = !!userSettings.showFutureMonths;
+  buildMonthOptions();
+  setChartCenter(getCurrentCenter().year, getCurrentCenter().month);
+}
+
+async function addCategory(){
+  const input = document.getElementById('newCategoryInput');
+  const value = input.value.trim();
+  if (!value) return;
+  if (userSettings.categories.includes(value)){
+    return alert('La categoría ya existe');
+  }
+  userSettings.categories.push(value);
+  await saveSettings();
+  populateCategorySelects(userSettings.categories);
+  renderAdminOptions();
+  input.value = '';
+}
+
+async function removeCategory(category){
+  userSettings.categories = userSettings.categories.filter(c => c !== category);
+  await saveSettings();
+  populateCategorySelects(userSettings.categories);
+  renderAdminOptions();
+}
+
+function attachAdminEvents(){
+  document.getElementById('addCategoryBtn').addEventListener('click', addCategory);
+  document.getElementById('categoryList').addEventListener('click', async ev => {
+    if(ev.target.classList.contains('remove-category')){
+      const category = ev.target.dataset.cat;
+      await removeCategory(category);
+    }
+  });
+  document.getElementById('enableFutureMonths').addEventListener('change', async ev => {
+    userSettings.showFutureMonths = ev.target.checked;
+    await saveSettings();
+    renderAdminOptions();
+  });
+  document.getElementById('chartCenterMonth').addEventListener('change', ev => {
+    const [year, month] = ev.target.value.split('-').map(Number);
+    setChartCenter(year, month);
+  });
+  document.getElementById('prevMonthBtn').addEventListener('click', () => {
+    const current = getCurrentCenter();
+    const prev = monthOffset(current, -1);
+    setChartCenter(prev.year, prev.month);
+  });
+  document.getElementById('nextMonthBtn').addEventListener('click', () => {
+    const current = getCurrentCenter();
+    const next = monthOffset(current, 1);
+    setChartCenter(next.year, next.month);
+  });
+}
+
 async function init(){
   document.getElementById('category').addEventListener('change', ev => {
     const show = ev.target.value === 'Otra';
     document.getElementById('categoryCustom').style.display = show ? 'block' : 'none';
   });
-
   document.getElementById('entryForm').addEventListener('submit', addEntry);
   document.getElementById('clearBtn').addEventListener('click', () => document.getElementById('entryForm').reset());
   document.getElementById('applyFilter').addEventListener('click', applyFilter);
   document.getElementById('exportCsv').addEventListener('click', exportCsv);
   document.getElementById('printReport').addEventListener('click', printReport);
-
+  attachAdminEvents();
+  await loadSettings();
+  populateCategorySelects(userSettings.categories);
+  renderAdminOptions();
   await refreshEntries();
 }
 

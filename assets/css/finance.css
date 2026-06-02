@@ -87,6 +87,35 @@ body {
   }
 }
 
+.chart-panel {
+  gap: 1.5rem;
+}
+
+.chart-area {
+  min-width: 280px;
+}
+
+.chart-sidebar {
+  min-width: 210px;
+  background: rgba(13,110,253,0.05);
+  border: 1px solid rgba(13,110,253,0.12);
+  border-radius: 16px;
+}
+
+.admin-panel .list-group-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-panel .list-group-item button {
+  min-width: 80px;
+}
+
+.admin-panel .form-label {
+  font-weight: 600;
+}
+
 @media print {
   body * { visibility: hidden; }
   .card, .card * { visibility: visible; }
