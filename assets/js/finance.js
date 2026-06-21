@@ -3,16 +3,22 @@
 
 const STORAGE_KEY = 'finances_entries_v1';
 const SETTINGS_KEY = 'finances_settings_v1';
+const USERS_KEY = 'finances_users_v1';
+const UI_SETTINGS_KEY = 'finances_ui_settings_v1';
 const entriesRef = db.collection('entries');
 const settingsRef = db.collection('settings').doc('config');
+const usersRef = db.collection('users');
+const uiSettingsRef = db.collection('uiSettings').doc('config');
 const defaultCategories = { 
   ingresos: ['Sueldo', 'Ventas', 'Freelance', 'Otros'], 
   egresos: ['Comida', 'Transporte', 'Servicios', 'Otros'] 
 };
 const CHART_WINDOW_SIZE = 3;
 let userSettings = { categories: { ingresos: [...defaultCategories.ingresos], egresos: [...defaultCategories.egresos] }, showFutureMonths: true };
+let uiSettings = { appTitle: 'Registro de Ingresos y Egresos', logoUrl: '', primaryColor: '#0d6efd', bgColor: '#f8f9fa', bgImageUrl: '' };
 let chartCenter = null;
 let monthChart = null;
+let currentUser = null;
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
 
@@ -101,6 +107,126 @@ function loadSettingsLocal(){
 
 function saveSettingsLocal(settings){
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+// Funciones para gestión de usuarios
+async function apiLoadUsers(){
+  try {
+    const snapshot = await usersRef.get();
+    const users = {};
+    snapshot.forEach(doc => users[doc.id] = doc.data());
+    return users;
+  } catch (e) {
+    console.warn('Firestore no disponible para usuarios, usando localStorage', e.message || e);
+    return loadUsersLocal();
+  }
+}
+
+async function apiSaveUser(username, userData){
+  try {
+    await usersRef.doc(username).set(userData);
+    return true;
+  } catch (e) {
+    console.warn('Error guardando usuario en Firestore', e.message || e);
+    const users = loadUsersLocal();
+    users[username] = userData;
+    saveUsersLocal(users);
+    return false;
+  }
+}
+
+async function apiDeleteUser(username){
+  try {
+    await usersRef.doc(username).delete();
+    return true;
+  } catch (e) {
+    console.warn('Error borrando usuario en Firestore', e.message || e);
+    const users = loadUsersLocal();
+    delete users[username];
+    saveUsersLocal(users);
+    return false;
+  }
+}
+
+function loadUsersLocal(){
+  try { return JSON.parse(localStorage.getItem(USERS_KEY) || '{}'); }
+  catch (e) { return {}; }
+}
+
+function saveUsersLocal(users){
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+}
+
+async function initDefaultUsers(){
+  const users = await apiLoadUsers();
+  if (!users['admin']) {
+    await apiSaveUser('admin', { username: 'admin', password: 'admin', role: 'admin' });
+  }
+  if (!users['modalab']) {
+    await apiSaveUser('modalab', { username: 'modalab', password: 'modalab', role: 'user' });
+  }
+}
+
+// Funciones para configuración UI
+async function loadUISettings(){
+  const defaults = { appTitle: 'Registro de Ingresos y Egresos', logoUrl: '', primaryColor: '#0d6efd', bgColor: '#f8f9fa', bgImageUrl: '' };
+  try {
+    const doc = await uiSettingsRef.get();
+    if(doc.exists){
+      uiSettings = { ...defaults, ...doc.data() };
+      return;
+    }
+  } catch (e) {
+    console.warn('No se pudo cargar configuración UI desde Firestore', e.message || e);
+  }
+  const local = localStorage.getItem(UI_SETTINGS_KEY);
+  if(local){
+    try { uiSettings = { ...defaults, ...JSON.parse(local) }; }
+    catch (e) { uiSettings = { ...defaults }; }
+  } else {
+    uiSettings = { ...defaults };
+  }
+}
+
+async function saveUISettings(){
+  try {
+    await uiSettingsRef.set(uiSettings, { merge: true });
+  } catch (e) {
+    console.warn('No se pudo guardar configuración UI en Firestore', e.message || e);
+    localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify(uiSettings));
+  }
+}
+
+function applyUISettings(){
+  document.getElementById('appTitle').textContent = uiSettings.appTitle || 'Registro de Ingresos y Egresos';
+  document.getElementById('loginTitle').textContent = uiSettings.appTitle || 'Iniciar Sesión';
+  
+  const navLogo = document.getElementById('navLogo');
+  const loginLogo = document.getElementById('loginLogo');
+  if (uiSettings.logoUrl) {
+    navLogo.src = uiSettings.logoUrl;
+    navLogo.style.display = 'block';
+    loginLogo.src = uiSettings.logoUrl;
+    loginLogo.style.display = 'block';
+  } else {
+    navLogo.style.display = 'none';
+    loginLogo.style.display = 'none';
+  }
+  
+  const customStyles = document.getElementById('customStyles');
+  let css = '';
+  if (uiSettings.primaryColor) {
+    css += `.bg-primary { background-color: ${uiSettings.primaryColor} !important; } `;
+    css += `.btn-primary { background-color: ${uiSettings.primaryColor}; border-color: ${uiSettings.primaryColor}; } `;
+    css += `.navbar-dark .navbar-nav .nav-link.active { color: ${uiSettings.primaryColor}; } `;
+  }
+  if (uiSettings.bgColor && !uiSettings.bgImageUrl) {
+    css += `body { background-color: ${uiSettings.bgColor} !important; } `;
+  }
+  if (uiSettings.bgImageUrl) {
+    css += `body { background-image: url('${uiSettings.bgImageUrl}'); background-size: cover; background-attachment: fixed; background-position: center; } `;
+  }
+  customStyles.textContent = css;
 }
 
 async function loadSettings(){
@@ -505,7 +631,122 @@ function attachAdminEvents(){
   });
 }
 
+// Funciones para gestión de usuarios en UI
+async function renderUserList(){
+  const userList = document.getElementById('userList');
+  if (!userList) return;
+  userList.innerHTML = '';
+  const users = await apiLoadUsers();
+  Object.keys(users).forEach(username => {
+    const user = users[username];
+    const item = document.createElement('li');
+    item.className = 'list-group-item d-flex justify-content-between align-items-center';
+    const roleBadge = user.role === 'admin' ? '<span class="badge bg-danger">Admin</span>' : '<span class="badge bg-secondary">Usuario</span>';
+    item.innerHTML = `<div><strong>${username}</strong> ${roleBadge}</div><button class="btn btn-sm btn-outline-danger delete-user" data-username="${username}">Eliminar</button>`;
+    userList.appendChild(item);
+  });
+  
+  userList.querySelectorAll('.delete-user').forEach(btn => {
+    btn.addEventListener('click', async ev => {
+      const username = ev.target.dataset.username;
+      if (username === currentUser.username) {
+        alert('No puedes eliminar tu propio usuario');
+        return;
+      }
+      if (confirm(`¿Eliminar usuario ${username}?`)) {
+        await apiDeleteUser(username);
+        renderUserList();
+      }
+    });
+  });
+}
+
+async function createUser(){
+  const usernameInput = document.getElementById('newUsername');
+  const passInput = document.getElementById('newUserpass');
+  const roleSelect = document.getElementById('newUserRole');
+  
+  const username = usernameInput.value.trim();
+  const password = passInput.value.trim();
+  const role = roleSelect.value;
+  
+  if (!username || !password) {
+    alert('Usuario y contraseña son requeridos');
+    return;
+  }
+  
+  const users = await apiLoadUsers();
+  if (users[username]) {
+    alert('El usuario ya existe');
+    return;
+  }
+  
+  await apiSaveUser(username, { username, password, role });
+  usernameInput.value = '';
+  passInput.value = '';
+  renderUserList();
+  alert('Usuario creado exitosamente');
+}
+
+async function loadUISettingsForm(){
+  document.getElementById('uiAppTitle').value = uiSettings.appTitle || '';
+  document.getElementById('uiLogoUrl').value = uiSettings.logoUrl || '';
+  document.getElementById('uiPrimaryColor').value = uiSettings.primaryColor || '#0d6efd';
+  document.getElementById('uiBgColor').value = uiSettings.bgColor || '#f8f9fa';
+  document.getElementById('uiBgImageUrl').value = uiSettings.bgImageUrl || '';
+}
+
+async function saveUISettingsForm(){
+  uiSettings.appTitle = document.getElementById('uiAppTitle').value.trim() || 'Registro de Ingresos y Egresos';
+  uiSettings.logoUrl = document.getElementById('uiLogoUrl').value.trim();
+  uiSettings.primaryColor = document.getElementById('uiPrimaryColor').value;
+  uiSettings.bgColor = document.getElementById('uiBgColor').value;
+  uiSettings.bgImageUrl = document.getElementById('uiBgImageUrl').value.trim();
+  
+  await saveUISettings();
+  applyUISettings();
+  alert('Configuración guardada exitosamente');
+}
+
+function resetUISettingsForm(){
+  uiSettings = { appTitle: 'Registro de Ingresos y Egresos', logoUrl: '', primaryColor: '#0d6efd', bgColor: '#f8f9fa', bgImageUrl: '' };
+  loadUISettingsForm();
+  saveUISettings();
+  applyUISettings();
+}
+
+function attachUIManagementEvents(){
+  const createBtn = document.getElementById('createUserBtn');
+  if (createBtn) {
+    createBtn.addEventListener('click', createUser);
+  }
+  
+  const saveUiBtn = document.getElementById('saveUiSettings');
+  if (saveUiBtn) {
+    saveUiBtn.addEventListener('click', saveUISettingsForm);
+  }
+  
+  const resetUiBtn = document.getElementById('resetUiSettings');
+  if (resetUiBtn) {
+    resetUiBtn.addEventListener('click', resetUISettingsForm);
+  }
+}
+
+function showAdminPanel(isAdmin){
+  const adminOnlyElements = document.querySelectorAll('.admin-only');
+  adminOnlyElements.forEach(el => {
+    el.style.display = isAdmin ? 'block' : 'none';
+  });
+}
+
 async function init(){
+  // Cargar configuración UI primero
+  await loadUISettings();
+  applyUISettings();
+  
+  // Inicializar usuarios por defecto
+  await initDefaultUsers();
+  
   const typeSelect = document.getElementById('type');
   
   typeSelect.addEventListener('change', ev => {
@@ -523,10 +764,101 @@ async function init(){
   document.getElementById('exportCsv').addEventListener('click', exportCsv);
   document.getElementById('printReport').addEventListener('click', printReport);
   attachAdminEvents();
+  attachUIManagementEvents();
   await loadSettings();
   populateCategorySelects('ingreso');
   renderAdminOptions();
   await refreshEntries();
 }
 
-document.addEventListener('DOMContentLoaded', init);
+// Sistema de autenticación
+async function handleLogin(e){
+  e.preventDefault();
+  const username = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value.trim();
+  const errorDiv = document.getElementById('loginError');
+  
+  if (!username || !password) {
+    errorDiv.textContent = 'Usuario y contraseña son requeridos';
+    errorDiv.classList.remove('d-none');
+    return;
+  }
+  
+  const users = await apiLoadUsers();
+  const user = users[username];
+  
+  if (!user || user.password !== password) {
+    errorDiv.textContent = 'Usuario o contraseña incorrectos';
+    errorDiv.classList.remove('d-none');
+    return;
+  }
+  
+  currentUser = { username: user.username, role: user.role };
+  localStorage.setItem('currentUser', JSON.stringify(currentUser));
+  
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appContainer').style.display = 'block';
+  
+  document.getElementById('userInfo').textContent = `${user.username} (${user.role === 'admin' ? 'Admin' : 'Usuario'})`;
+  
+  showAdminPanel(user.role === 'admin');
+  
+  if (user.role === 'admin') {
+    renderUserList();
+    loadUISettingsForm();
+  }
+  
+  init();
+}
+
+function handleLogout(){
+  currentUser = null;
+  localStorage.removeItem('currentUser');
+  document.getElementById('appContainer').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'block';
+  document.getElementById('loginForm').reset();
+  document.getElementById('loginError').classList.add('d-none');
+}
+
+async function checkSession(){
+  const savedUser = localStorage.getItem('currentUser');
+  if (savedUser) {
+    try {
+      currentUser = JSON.parse(savedUser);
+      const users = await apiLoadUsers();
+      if (users[currentUser.username]) {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('appContainer').style.display = 'block';
+        
+        const user = users[currentUser.username];
+        document.getElementById('userInfo').textContent = `${currentUser.username} (${currentUser.role === 'admin' ? 'Admin' : 'Usuario'})`;
+        
+        showAdminPanel(currentUser.role === 'admin');
+        
+        if (currentUser.role === 'admin') {
+          renderUserList();
+          loadUISettingsForm();
+        }
+        
+        return true;
+      }
+    } catch (e) {
+      console.warn('Error al validar sesión', e);
+    }
+  }
+  return false;
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const hasSession = await checkSession();
+  
+  if (!hasSession) {
+    document.getElementById('loginScreen').style.display = 'block';
+    document.getElementById('appContainer').style.display = 'none';
+    
+    document.getElementById('loginForm').addEventListener('submit', handleLogin);
+    document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+  } else {
+    document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+  }
+});
