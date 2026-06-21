@@ -8,14 +8,60 @@
   <link rel="stylesheet" href="assets/css/finance.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <style id="customStyles"></style>
 </head>
 <body>
-<div class="container py-4">
-  <h1 class="mb-3">Registro de Ingresos y Egresos</h1>
+
+<!-- Login Screen -->
+<div class="container py-5" id="loginScreen">
+  <div class="row justify-content-center">
+    <div class="col-md-5 col-lg-4">
+      <div class="card shadow">
+        <div class="card-body p-4">
+          <div class="text-center mb-4">
+            <img id="loginLogo" src="" alt="Logo" style="height:60px;display:none;" class="mb-3">
+            <h2 id="loginTitle">Iniciar Sesión</h2>
+            <p class="text-muted">Sistema de Registro Financiero</p>
+          </div>
+          <form id="loginForm">
+            <div class="mb-3">
+              <label class="form-label">Usuario</label>
+              <input type="text" id="loginUser" class="form-control" required autocomplete="username">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Contraseña</label>
+              <input type="password" id="loginPass" class="form-control" required autocomplete="current-password">
+            </div>
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary btn-lg">Ingresar</button>
+            </div>
+            <div id="loginError" class="alert alert-danger mt-3 d-none"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main App Container -->
+<div class="container py-4" id="appContainer" style="display:none;">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4 rounded">
+    <div class="container-fluid">
+      <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+        <img id="navLogo" src="" alt="Logo" style="height:30px;display:none;">
+        <span id="appTitle">Registro de Ingresos y Egresos</span>
+      </a>
+      <div class="d-flex align-items-center gap-3">
+        <span class="text-white small" id="userInfo"></span>
+        <button class="btn btn-outline-light btn-sm" id="logoutBtn">Cerrar sesión</button>
+      </div>
+    </div>
+  </nav>
+
   <div class="device-banner alert alert-primary d-none" id="deviceBanner">
     Interfaz adaptada para iPhone y iPad: vista compacta, botones grandes y resumen rápido.
   </div>
-
+  
   <div class="mb-4">
     <ul class="nav nav-tabs" id="financeTab" role="tablist">
       <li class="nav-item" role="presentation">
@@ -107,10 +153,74 @@
 
     <div class="tab-pane fade" id="adminTab" role="tabpanel" aria-labelledby="admin-tab">
       <div class="row">
-        <div class="col-12">
+        <!-- Panel visible solo para admin -->
+        <div class="col-lg-6 admin-only" style="display:none;">
           <div class="card mb-3">
             <div class="card-body admin-panel">
-              <h5 class="card-title">Admin - Personalización</h5>
+              <h5 class="card-title">Gestión de Usuarios</h5>
+              <p>Crea y gestiona usuarios del sistema.</p>
+              
+              <div class="mb-3">
+                <label class="form-label">Nuevo Usuario</label>
+                <input type="text" id="newUsername" class="form-control mb-2" placeholder="Nombre de usuario" />
+                <input type="password" id="newUserpass" class="form-control mb-2" placeholder="Contraseña" />
+                <select id="newUserRole" class="form-select mb-2">
+                  <option value="user">Usuario Normal</option>
+                  <option value="admin">Administrador</option>
+                </select>
+                <button class="btn btn-primary" id="createUserBtn">Crear Usuario</button>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Usuarios Existentes</label>
+                <ul class="list-group" id="userList"></ul>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card mb-3">
+            <div class="card-body admin-panel">
+              <h5 class="card-title">Personalización UI</h5>
+              <p>Personaliza la apariencia de la aplicación.</p>
+              
+              <div class="mb-3">
+                <label class="form-label">Título de la Aplicación</label>
+                <input type="text" id="uiAppTitle" class="form-control" placeholder="Ej: Mi Finanzas" />
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">URL del Logo</label>
+                <input type="text" id="uiLogoUrl" class="form-control" placeholder="https://ejemplo.com/logo.png" />
+                <small class="form-text text-muted">Pega la URL de una imagen para usar como logo</small>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Color Principal</label>
+                <input type="color" id="uiPrimaryColor" class="form-control form-control-color w-100" value="#0d6efd" />
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Color de Fondo</label>
+                <input type="color" id="uiBgColor" class="form-control form-control-color w-100" value="#f8f9fa" />
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">URL de Fondo de Pantalla</label>
+                <input type="text" id="uiBgImageUrl" class="form-control" placeholder="https://ejemplo.com/fondo.jpg" />
+                <small class="form-text text-muted">Imagen de fondo para toda la aplicación</small>
+              </div>
+              
+              <button class="btn btn-success" id="saveUiSettings">Guardar Personalización</button>
+              <button class="btn btn-secondary" id="resetUiSettings">Restaurar Valores</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Panel común para todos los usuarios -->
+        <div class="col-lg-6">
+          <div class="card mb-3">
+            <div class="card-body admin-panel">
+              <h5 class="card-title">Admin - Categorías</h5>
               <p>Gestiona las categorías disponibles en el formulario y los filtros. Estos cambios se guardan en Firebase para todos los usuarios.</p>
               
               <div class="mb-3">
