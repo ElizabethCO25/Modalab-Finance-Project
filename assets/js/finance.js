@@ -770,6 +770,7 @@ async function init(){
   document.getElementById('clearBtn').addEventListener('click', () => document.getElementById('entryForm').reset());
   document.getElementById('applyFilter').addEventListener('click', applyFilter);
   document.getElementById('exportCsv').addEventListener('click', exportCsv);
+  document.getElementById('filterMonth').addEventListener('change', applyFilter);
   document.getElementById('printReport').addEventListener('click', printReport);
   attachAdminEvents();
   attachUIManagementEvents();
