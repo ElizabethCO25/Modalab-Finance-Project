@@ -392,7 +392,7 @@ async function refreshEntries(){
   const entries = await apiLoadEntries();
   window.latestEntries = entries;
   renderEntries(entries);
-  await updateSummary(entries);
+  applyFilter();
 }
 
 function safeDateCompare(date, boundary){
@@ -761,6 +761,10 @@ async function init(){
   document.getElementById('entryForm').addEventListener('submit', addEntry);
   document.getElementById('clearBtn').addEventListener('click', () => document.getElementById('entryForm').reset());
   document.getElementById('applyFilter').addEventListener('click', applyFilter);
+  document.getElementById('filterMonth').addEventListener('change', applyFilter);
+  document.getElementById('filterStart').addEventListener('change', applyFilter);
+  document.getElementById('filterEnd').addEventListener('change', applyFilter);
+  document.getElementById('filterCategory').addEventListener('change', applyFilter);
   document.getElementById('exportCsv').addEventListener('click', exportCsv);
   document.getElementById('printReport').addEventListener('click', printReport);
   attachAdminEvents();
