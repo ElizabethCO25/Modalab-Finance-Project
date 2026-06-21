@@ -470,14 +470,22 @@ async function updateSummary(entries){
   const filterMonth = document.getElementById('filterMonth').value;
   const summaryEl = document.getElementById('summary');
 
+  let displayEntries = entries;
+  
+  // Si hay un mes filtrado, usar solo los registros de ese mes
   if (filterMonth) {
-    const data = map[filterMonth] || { ingresos: 0, egresos: 0 };
-    const balance = data.ingresos - data.egresos;
-    summaryEl.innerHTML = `<div class="row"><div class="col"><strong>Ingresos:</strong> ${data.ingresos.toFixed(2)}</div><div class="col"><strong>Egresos:</strong> ${data.egresos.toFixed(2)}</div><div class="col"><strong>Balance:</strong> ${balance.toFixed(2)}</div></div>`;
+    displayEntries = entries.filter(e => monthKey(e.date) === filterMonth);
+  }
+  
+  // Calcular totales basados en los registros que se están mostrando
+  const totalIn = displayEntries.reduce((sum, e) => sum + (e.type === 'ingreso' ? Number(e.amount) : 0), 0);
+  const totalOut = displayEntries.reduce((sum, e) => sum + (e.type === 'egreso' ? Number(e.amount) : 0), 0);
+  const balance = totalIn - totalOut;
+  
+  if (filterMonth) {
+    summaryEl.innerHTML = `<div class="row"><div class="col"><strong>Ingresos:</strong> ${totalIn.toFixed(2)}</div><div class="col"><strong>Egresos:</strong> ${totalOut.toFixed(2)}</div><div class="col"><strong>Balance:</strong> ${balance.toFixed(2)}</div></div>`;
   } else {
-    const totalIn = entries.reduce((sum, e) => sum + (e.type === 'ingreso' ? Number(e.amount) : 0), 0);
-    const totalOut = entries.reduce((sum, e) => sum + (e.type === 'egreso' ? Number(e.amount) : 0), 0);
-    summaryEl.innerHTML = `<div class="row"><div class="col"><strong>Total ingresos:</strong> ${totalIn.toFixed(2)}</div><div class="col"><strong>Total egresos:</strong> ${totalOut.toFixed(2)}</div><div class="col"><strong>Balance:</strong> ${(totalIn - totalOut).toFixed(2)}</div></div>`;
+    summaryEl.innerHTML = `<div class="row"><div class="col"><strong>Total ingresos:</strong> ${totalIn.toFixed(2)}</div><div class="col"><strong>Total egresos:</strong> ${totalOut.toFixed(2)}</div><div class="col"><strong>Balance:</strong> ${balance.toFixed(2)}</div></div>`;
   }
 
   refreshChart();
