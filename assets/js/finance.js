@@ -769,6 +769,7 @@ async function init(){
   populateCategorySelects('ingreso');
   renderAdminOptions();
   await refreshEntries();
+  document.getElementById('filterMonth').addEventListener('change', applyFilter);
 }
 
 // Sistema de autenticación
