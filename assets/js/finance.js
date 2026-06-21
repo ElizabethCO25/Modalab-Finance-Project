@@ -475,9 +475,12 @@ async function updateSummary(entries){
     const balance = data.ingresos - data.egresos;
     summaryEl.innerHTML = `<div class="row"><div class="col"><strong>Ingresos:</strong> ${data.ingresos.toFixed(2)}</div><div class="col"><strong>Egresos:</strong> ${data.egresos.toFixed(2)}</div><div class="col"><strong>Balance:</strong> ${balance.toFixed(2)}</div></div>`;
   } else {
-    const totalIn = entries.reduce((sum, e) => sum + (e.type === 'ingreso' ? Number(e.amount) : 0), 0);
-    const totalOut = entries.reduce((sum, e) => sum + (e.type === 'egreso' ? Number(e.amount) : 0), 0);
-    summaryEl.innerHTML = `<div class="row"><div class="col"><strong>Total ingresos:</strong> ${totalIn.toFixed(2)}</div><div class="col"><strong>Total egresos:</strong> ${totalOut.toFixed(2)}</div><div class="col"><strong>Balance:</strong> ${(totalIn - totalOut).toFixed(2)}</div></div>`;
+    // Si no hay filtro, mostrar los datos del mes actual
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const data = map[currentMonthKey] || { ingresos: 0, egresos: 0 };
+    const balance = data.ingresos - data.egresos;
+    summaryEl.innerHTML = `<div class="row"><div class="col"><strong>Ingresos:</strong> ${data.ingresos.toFixed(2)}</div><div class="col"><strong>Egresos:</strong> ${data.egresos.toFixed(2)}</div><div class="col"><strong>Balance:</strong> ${balance.toFixed(2)}</div></div>`;
   }
 
   refreshChart();
