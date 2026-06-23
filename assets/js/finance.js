@@ -467,21 +467,14 @@ async function updateSummary(entries){
   if (!entries) entries = await apiLoadEntries();
   window.latestEntries = entries;
   const map = computeMonthlyTotals(entries);
-  const filterMonth = document.getElementById('filterMonth').value;
   const summaryEl = document.getElementById('summary');
   const chartCenterSelect = document.getElementById('chartCenterMonth');
-
-  if (filterMonth) {
-    const data = map[filterMonth] || { ingresos: 0, egresos: 0 };
-    const balance = data.ingresos - data.egresos;
-    summaryEl.innerHTML = `<div class="row"><div class="col"><strong>Ingresos:</strong> ${data.ingresos.toFixed(2)}</div><div class="col"><strong>Egresos:</strong> ${data.egresos.toFixed(2)}</div><div class="col"><strong>Balance:</strong> ${balance.toFixed(2)}</div></div>`;
-  } else {
-    // Si no hay filtro, mostrar los totales del mes seleccionado en chartCenterMonth
-    const selectedMonth = chartCenterSelect.value || '';
-    const data = map[selectedMonth] || { ingresos: 0, egresos: 0 };
-    const balance = data.ingresos - data.egresos;
-    summaryEl.innerHTML = `<div class="row"><div class="col"><strong>Total ingresos:</strong> ${data.ingresos.toFixed(2)}</div><div class="col"><strong>Total egresos:</strong> ${data.egresos.toFixed(2)}</div><div class="col"><strong>Balance:</strong> ${balance.toFixed(2)}</div></div>`;
-  }
+  
+  // Usar siempre el mes seleccionado en chartCenterMonth para el resumen mensual
+  const selectedMonth = chartCenterSelect.value || '';
+  const data = map[selectedMonth] || { ingresos: 0, egresos: 0 };
+  const balance = data.ingresos - data.egresos;
+  summaryEl.innerHTML = `<div class="row"><div class="col"><strong>Total ingresos:</strong> ${data.ingresos.toFixed(2)}</div><div class="col"><strong>Total egresos:</strong> ${data.egresos.toFixed(2)}</div><div class="col"><strong>Balance:</strong> ${balance.toFixed(2)}</div></div>`;
 
   refreshChart();
 }
