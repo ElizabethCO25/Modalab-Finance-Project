@@ -554,9 +554,9 @@ function renderEntries(entries){
       <td>${e.description || ''}</td>
       <td class="no-print">
         <div class="btn-group btn-group-sm">
-          <button class="btn btn-outline-primary edit-btn" data-id="${e.id}" id="edit-${e.id}" title="Editar">✏️</button>
-          <button class="btn btn-outline-success duplicate-btn" data-id="${e.id}" id="dup-${e.id}" title="Duplicar">📋</button>
-          <button class="btn btn-outline-danger delete-btn" data-id="${e.id}" id="del-${e.id}" title="Eliminar">🗑️</button>
+          <button class="btn btn-outline-primary edit-btn" data-id="${e.id}" title="Editar">✏️</button>
+          <button class="btn btn-outline-success duplicate-btn" data-id="${e.id}" title="Duplicar">📋</button>
+          <button class="btn btn-outline-danger delete-btn" data-id="${e.id}" title="Eliminar">🗑️</button>
         </div>
       </td>`;
     tbody.appendChild(tr);
@@ -572,6 +572,37 @@ function renderEntries(entries){
         selectedEntries.delete(id);
       }
       updateActionBar();
+    });
+  });
+  
+  // Configurar eventos para botones de acción (editar, duplicar, eliminar)
+  tbody.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const id = btn.getAttribute('data-id');
+      console.log('Editar ID:', id);
+      if(id) editEntry(id);
+    });
+  });
+  
+  tbody.querySelectorAll('.duplicate-btn').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const id = btn.getAttribute('data-id');
+      console.log('Duplicar ID:', id);
+      if(id) duplicateEntry(id);
+    });
+  });
+  
+  tbody.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const id = btn.getAttribute('data-id');
+      console.log('Eliminar ID:', id);
+      if(id) deleteEntry(id);
     });
   });
 }
