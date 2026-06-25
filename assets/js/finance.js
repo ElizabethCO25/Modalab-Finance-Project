@@ -607,41 +607,6 @@ function renderEntries(entries){
   });
 }
 
-// Delegación de eventos para botones de acción (se configura una sola vez)
-document.addEventListener('DOMContentLoaded', () => {
-  const tbody = document.querySelector('#entriesTable tbody');
-  if(tbody){
-    tbody.addEventListener('click', (ev) => {
-      console.log('Click en tbody:', ev.target, ev.target.tagName);
-      
-      // Buscar el botón más cercano (puede ser el emoji o el botón mismo)
-      const editBtn = ev.target.closest('.edit-btn');
-      const duplicateBtn = ev.target.closest('.duplicate-btn');
-      const deleteBtn = ev.target.closest('.delete-btn');
-      
-      if(editBtn){
-        ev.preventDefault();
-        ev.stopPropagation();
-        const id = editBtn.getAttribute('data-id');
-        console.log('Editar ID:', id);
-        if(id) editEntry(id);
-      } else if(duplicateBtn){
-        ev.preventDefault();
-        ev.stopPropagation();
-        const id = duplicateBtn.getAttribute('data-id');
-        console.log('Duplicar ID:', id);
-        if(id) duplicateEntry(id);
-      } else if(deleteBtn){
-        ev.preventDefault();
-        ev.stopPropagation();
-        const id = deleteBtn.getAttribute('data-id');
-        console.log('Eliminar ID:', id);
-        if(id) deleteEntry(id);
-      }
-    });
-  }
-});
-
 function computeMonthlyTotals(entries){
   const map = {};
   entries.forEach(e => {
