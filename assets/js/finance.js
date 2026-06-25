@@ -538,6 +538,7 @@ async function editEntry(id){
 
 function renderEntries(entries){
   const tbody = document.querySelector('#entriesTable tbody');
+  if (!tbody) return; // Si no existe el tbody, salir
   tbody.innerHTML = '';
   const sorted = entries.slice().sort(compareDatesDesc);
   
@@ -580,6 +581,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const tbody = document.querySelector('#entriesTable tbody');
   if(tbody){
     tbody.addEventListener('click', (ev) => {
+      console.log('Click en tbody:', ev.target);
       const editBtn = ev.target.closest('.edit-btn');
       const duplicateBtn = ev.target.closest('.duplicate-btn');
       const deleteBtn = ev.target.closest('.delete-btn');
@@ -587,14 +589,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if(editBtn){
         ev.preventDefault();
         ev.stopPropagation();
+        console.log('Editar ID:', editBtn.dataset.id);
         editEntry(editBtn.dataset.id);
       } else if(duplicateBtn){
         ev.preventDefault();
         ev.stopPropagation();
+        console.log('Duplicar ID:', duplicateBtn.dataset.id);
         duplicateEntry(duplicateBtn.dataset.id);
       } else if(deleteBtn){
         ev.preventDefault();
         ev.stopPropagation();
+        console.log('Eliminar ID:', deleteBtn.dataset.id);
         deleteEntry(deleteBtn.dataset.id);
       }
     });
