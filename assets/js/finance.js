@@ -55,28 +55,48 @@ function compareDatesDesc(a, b){
 }
 
 async function apiLoadEntries(){
-  const entries = await apiLoadEntries();
-    allEntries = entries; // <--- GUARDAR LOS DATOS EN LA VARIABLE GLOBAL
-    
-    // ... resto del código que renderiza la tabla o lista ...
-    renderTable(); // Ejemplo: tu función que dibuja la tabla
-    
-    // IMPORTANTE: Actualizar el resumen apenas carguen los datos
-    if (typeof updateSummaryDisplay === 'function') {
-        updateSummaryDisplay();
-    }
+  try {
+    const snapshot = await entriesRef.get();
+    const entries = [];
+    snapshot.forEach(doc => entries.push({ id: doc.id, ...doc.data() }));
+    allEntries = entries;
+    return entries;
+  } catch (e) {
+    console.warn('Firestore no disponible, usando localStorage', e.message || e);
+    const entries = loadEntriesLocal();
+    allEntries = entries;
+    return entries;
+  }
 }
 
 async function apiSaveEntry(entry){
-  // Después de guardar exitosamente en Firebase/Local:
-allEntries.unshift(newEntry); // Agrega el nuevo registro al inicio de la lista global
-updateSummaryDisplay(); // Recalcula el resumen inmediatamente
+  try {
+    await entriesRef.add(entry);
+    allEntries.unshift(entry);
+    updateSummaryDisplay();
+  } catch (e) {
+    console.warn('Error guardando en Firestore, usando localStorage', e.message || e);
+    const entries = loadEntriesLocal();
+    entries.unshift(entry);
+    saveEntriesLocal(entries);
+    allEntries = entries;
+    updateSummaryDisplay();
+  }
 }
 
 async function apiDeleteEntry(id){
-  // Después de borrar exitosamente:
-allEntries = allEntries.filter(e => e.id !== idToDelete); // Filtra la lista global
-updateSummaryDisplay(); // Recalcula el resumen
+  try {
+    await entriesRef.doc(id).delete();
+    allEntries = allEntries.filter(e => e.id !== id);
+    updateSummaryDisplay();
+  } catch (e) {
+    console.warn('Error borrando en Firestore, usando localStorage', e.message || e);
+    const entries = loadEntriesLocal();
+    const updated = entries.filter(e => e.id !== id);
+    saveEntriesLocal(updated);
+    allEntries = updated;
+    updateSummaryDisplay();
+  }
 }
 
 function loadEntriesLocal(){
@@ -272,7 +292,7 @@ function populateCategorySelects(type = 'ingreso'){
   const categories = userSettings.categories[normalizedType] || [];
   
   categorySelect.innerHTML = '';
-  filterCategory.innerHTML = '<option value="">Todas las categorías</option>';
+  filterCategory.innerHTML = '<option value="">Filtrar por categoría</option>';
   
   categories.forEach(cat => {
     if(cat !== 'Otros'){
@@ -466,7 +486,7 @@ async function updateSummary(entries){
   const selectedMonth = chartCenterSelect.value || '';
   const data = map[selectedMonth] || { ingresos: 0, egresos: 0 };
   const balance = data.ingresos - data.egresos;
-  summaryEl.innerHTML = `<div class="row"><div class="col"><strong>Total ingresos:</strong> ${data.ingresos.toFixed(2)}</div><div class="col"><strong>Total egresos:</strong> ${data.egresos.toFixed(2)}</div><div class="col"><strong>Balance:</strong> ${balance.toFixed(2)}</div></div>`;
+  summaryEl.innerHTML = `<div class="row"><div class="col"><strong>Total ingresos:</strong> S/ ${data.ingresos.toFixed(2)}</div><div class="col"><strong>Total egresos:</strong> S/ ${data.egresos.toFixed(2)}</div><div class="col"><strong>Balance:</strong> S/ ${balance.toFixed(2)}</div></div>`;
 
   refreshChart();
 }
@@ -532,14 +552,14 @@ function applyFilter(){
   drawCharts(rows);
   const totalIn = rows.reduce((sum, e) => sum + (e.type === 'ingreso' ? Number(e.amount) : 0), 0);
   const totalOut = rows.reduce((sum, e) => sum + (e.type === 'egreso' ? Number(e.amount) : 0), 0);
-  document.getElementById('summary').innerHTML = `<div class="row"><div class="col"><strong>Ingresos:</strong> ${totalIn.toFixed(2)}</div><div class="col"><strong>Egresos:</strong> ${totalOut.toFixed(2)}</div><div class="col"><strong>Balance:</strong> ${(totalIn - totalOut).toFixed(2)}</div></div>`;
+  document.getElementById('summary').innerHTML = `<div class="row"><div class="col"><strong>Ingresos:</strong> S/ ${totalIn.toFixed(2)}</div><div class="col"><strong>Egresos:</strong> S/ ${totalOut.toFixed(2)}</div><div class="col"><strong>Balance:</strong> S/ ${(totalIn - totalOut).toFixed(2)}</div></div>`;
 }
 
 function exportXlsx(){
   const rows = document.querySelectorAll('#entriesTable tbody tr');
   if (rows.length === 0) return alert('No hay registros para exportar');
   
-  // Create workbook and worksheet
+  // Create workbook and worksheet using XLSX library for .xlsx format
   const wb = XLSX.utils.book_new();
   
   // Prepare data for worksheet
@@ -560,7 +580,10 @@ function exportXlsx(){
   XLSX.writeFile(wb, 'finances_export.xlsx');
 }
 
-function printReport(){ window.print(); }
+function printReport(){
+  // Imprimir solo la tabla de registros, sin filtros ni cabeceras
+  window.print();
+}
 
 function renderAdminOptions(){
   renderCategoryList();
@@ -908,15 +931,15 @@ function updateSummaryDisplay() {
             <div class="row text-center">
                 <div class="col-4">
                     <h6 class="text-success">Ingresos</h6>
-                    <h4>$${summaryData.ingresos.toLocaleString('es-ES', {minimumFractionDigits: 2})}</h4>
+                    <h4>S/ ${summaryData.ingresos.toLocaleString('es-ES', {minimumFractionDigits: 2})}</h4>
                 </div>
                 <div class="col-4">
                     <h6 class="text-danger">Egresos</h6>
-                    <h4>$${summaryData.egresos.toLocaleString('es-ES', {minimumFractionDigits: 2})}</h4>
+                    <h4>S/ ${summaryData.egresos.toLocaleString('es-ES', {minimumFractionDigits: 2})}</h4>
                 </div>
                 <div class="col-4">
                     <h6 class="${summaryData.balance >= 0 ? 'text-primary' : 'text-danger'}">Balance</h6>
-                    <h4>$${summaryData.balance.toLocaleString('es-ES', {minimumFractionDigits: 2})}</h4>
+                    <h4>S/ ${summaryData.balance.toLocaleString('es-ES', {minimumFractionDigits: 2})}</h4>
                 </div>
             </div>
             <div class="text-center mt-2 text-muted small">

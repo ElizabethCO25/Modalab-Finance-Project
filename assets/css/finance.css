@@ -121,6 +121,20 @@ body {
   #historyTab .card:nth-child(2), #historyTab .card:nth-child(2) * { visibility: visible; }
   #historyTab .card:nth-child(2) { box-shadow:none; position: absolute; left: 0; top: 0; width: 100%; }
   
+  /* Ocultar filtros y cabeceras de la pestaña historial */
+  #historyTab .card:first-child, 
+  #historyTab .card:first-child * { 
+    display: none !important; 
+    visibility: hidden !important; 
+  }
+  
+  /* Mostrar solo la tabla de registros y su título */
+  #historyTab .card:nth-child(2) .card-title,
+  #historyTab .card:nth-child(2) .table-responsive,
+  #historyTab .card:nth-child(2) .table-responsive * { 
+    visibility: visible !important; 
+  }
+  
   /* Add footer signature at the bottom of printed page */
   body::after {
     content: 'ModaLab Finance © 2026 Modalab S.A.C. Todos los derechos reservados.';
