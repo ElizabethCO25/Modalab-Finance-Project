@@ -527,6 +527,18 @@ function drawCharts(entries){
   });
 }
 
+function clearFilters(){
+  document.getElementById('filterMonth').value = '';
+  document.getElementById('filterStart').value = '';
+  document.getElementById('filterEnd').value = '';
+  document.getElementById('filterCategory').value = '';
+  // Recargar todos los registros
+  const rows = window.latestEntries || [];
+  renderEntries(rows);
+  drawCharts(rows);
+  updateSummaryDisplay();
+}
+
 function applyFilter(){
   const filterMonth = document.getElementById('filterMonth').value;
   const start = document.getElementById('filterStart').value;
@@ -780,6 +792,7 @@ async function init(){
   document.getElementById('entryForm').addEventListener('submit', addEntry);
   document.getElementById('clearBtn').addEventListener('click', () => document.getElementById('entryForm').reset());
   document.getElementById('applyFilter').addEventListener('click', applyFilter);
+  document.getElementById('clearFilters').addEventListener('click', clearFilters);
   document.getElementById('exportXlsx').addEventListener('click', exportXlsx);
   document.getElementById('printReport').addEventListener('click', printReport);
   attachAdminEvents();
