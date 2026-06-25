@@ -535,21 +535,29 @@ function applyFilter(){
   document.getElementById('summary').innerHTML = `<div class="row"><div class="col"><strong>Ingresos:</strong> ${totalIn.toFixed(2)}</div><div class="col"><strong>Egresos:</strong> ${totalOut.toFixed(2)}</div><div class="col"><strong>Balance:</strong> ${(totalIn - totalOut).toFixed(2)}</div></div>`;
 }
 
-function exportCsv(){
+function exportXlsx(){
   const rows = document.querySelectorAll('#entriesTable tbody tr');
   if (rows.length === 0) return alert('No hay registros para exportar');
-  let csv = 'Fecha,Tipo,Categoría,Monto,Descripción\n';
+  
+  // Create workbook and worksheet
+  const wb = XLSX.utils.book_new();
+  
+  // Prepare data for worksheet
+  const data = [['Fecha', 'Tipo', 'Categoría', 'Monto', 'Descripción']];
   rows.forEach(r => {
     const cells = r.querySelectorAll('td');
-    csv += `${cells[0].innerText},${cells[1].innerText},"${cells[2].innerText}",${cells[3].innerText.replace(',','')},"${cells[4].innerText}"\n`;
+    data.push([
+      cells[0].innerText,
+      cells[1].innerText,
+      cells[2].innerText,
+      parseFloat(cells[3].innerText.replace(/[^0-9.-]+/g,'')),
+      cells[4].innerText
+    ]);
   });
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `finances_export.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  XLSX.utils.book_append_sheet(wb, ws, 'Finanzas');
+  XLSX.writeFile(wb, 'finances_export.xlsx');
 }
 
 function printReport(){ window.print(); }
@@ -749,7 +757,7 @@ async function init(){
   document.getElementById('entryForm').addEventListener('submit', addEntry);
   document.getElementById('clearBtn').addEventListener('click', () => document.getElementById('entryForm').reset());
   document.getElementById('applyFilter').addEventListener('click', applyFilter);
-  document.getElementById('exportCsv').addEventListener('click', exportCsv);
+  document.getElementById('exportXlsx').addEventListener('click', exportXlsx);
   document.getElementById('printReport').addEventListener('click', printReport);
   attachAdminEvents();
   attachUIManagementEvents();
