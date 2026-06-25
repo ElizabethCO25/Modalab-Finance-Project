@@ -381,6 +381,10 @@ function setChartCenter(year, month){
   chartCenter = { year, month };
   updateChartCenterSelect();
   refreshChart();
+  // Actualizar también el resumen mensual cuando cambia el mes
+  if(window.latestEntries) {
+    updateSummary(window.latestEntries);
+  }
 }
 
 function refreshChart(){
