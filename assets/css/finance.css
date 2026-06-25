@@ -128,6 +128,16 @@ body {
     visibility: hidden !important; 
   }
   
+  /* Ocultar barra de acciones y checkboxes en impresión */
+  .action-bar,
+  .action-bar *,
+  input[type="checkbox"],
+  .no-print,
+  .no-print * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
   /* Mostrar solo la tabla de registros y su título */
   #historyTab .card:nth-child(2) .card-title,
   #historyTab .card:nth-child(2) .table-responsive,
@@ -148,5 +158,194 @@ body {
     color: #666;
     padding: 10px;
     visibility: visible;
+  }
+}
+
+/* ===========================================
+   OPTIMIZACIÓN PARA MÓVILES
+   =========================================== */
+
+@media (max-width: 768px) {
+  /* Banner de dispositivo - mostrar siempre en móvil */
+  .device-banner {
+    display: block !important;
+  }
+  
+  /* Barra de acciones global - oculta en móvil */
+  .action-bar {
+    display: none !important;
+  }
+  
+  /* Checkbox "seleccionar todos" - oculto en móvil */
+  #selectAllCheckbox {
+    display: none;
+  }
+  
+  /* Ajustes de tabla para móvil */
+  .table-responsive {
+    border-radius: 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Tabla con diseño compacto en móvil */
+  .table-sm th,
+  .table-sm td {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.85rem;
+  }
+  
+  /* Columnas prioritarias en móvil */
+  #entriesTable thead th:nth-child(1), /* Checkbox */
+  #entriesTable tbody td:nth-child(1) {
+    width: 40px;
+    text-align: center;
+  }
+  
+  #entriesTable thead th:nth-child(2), /* Fecha */
+  #entriesTable tbody td:nth-child(2) {
+    white-space: nowrap;
+  }
+  
+  #entriesTable thead th:nth-child(5), /* Monto */
+  #entriesTable tbody td:nth-child(5) {
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  
+  /* Columnas menos importantes - ocultas o simplificadas en móvil */
+  #entriesTable thead th:nth-child(3), /* Tipo */
+  #entriesTable tbody td:nth-child(3),
+  #entriesTable thead th:nth-child(4), /* Categoría */
+  #entriesTable tbody td:nth-child(4),
+  #entriesTable thead th:nth-child(6), /* Descripción */
+  #entriesTable tbody td:nth-child(6) {
+    display: none;
+  }
+  
+  /* Checkbox más grande y fácil de tocar */
+  input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    margin: 0;
+  }
+  
+  /* Botones de acción en móvil - simplificados */
+  .no-print .btn-group,
+  .no-print .btn {
+    padding: 0.25rem 0.5rem;
+    min-height: auto;
+  }
+  
+  /* Iconos sin texto en móvil */
+  .no-print .btn svg {
+    display: inline-block;
+  }
+  
+  .no-print .btn span.d-none-mobile {
+    display: none;
+  }
+  
+  /* Botones de acción individual - solo iconos en móvil */
+  .edit-btn,
+  .duplicate-btn,
+  .delete-btn {
+    font-size: 1rem;
+    padding: 0.35rem 0.5rem;
+  }
+  
+  .btn-group-sm .btn {
+    padding: 0.25rem 0.4rem;
+  }
+  
+  @media (max-width: 768px) {
+    .edit-btn::after,
+    .duplicate-btn::after,
+    .delete-btn::after {
+      content: '';
+    }
+  }
+  
+  /* Tarjetas con bordes redondeados */
+  .card {
+    border-radius: 16px;
+    margin-bottom: 1rem;
+  }
+  
+  /* Navegación de tabs mejorada */
+  .nav-tabs .nav-link {
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  /* Filtros en columna en móvil */
+  #filterMonth,
+  #filterStart,
+  #filterEnd,
+  #filterCategory {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Botones de filtro apilados */
+  #applyFilter,
+  #clearFilters,
+  #exportXlsx,
+  #printReport {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Resumen mensual - ajustes */
+  #summary {
+    font-size: 0.9rem;
+  }
+  
+  /* Gráfico - altura reducida */
+  #monthChart {
+    max-height: 200px;
+  }
+  
+  /* Sidebar del gráfico - colapsado */
+  .chart-sidebar {
+    margin-top: 1rem !important;
+    margin-left: 0 !important;
+    padding: 1rem !important;
+  }
+  
+  /* Títulos más pequeños */
+  .card-title {
+    font-size: 1.1rem;
+  }
+  
+  /* Navbar responsive */
+  .navbar-brand span {
+    font-size: 0.9rem;
+  }
+  
+  /* Footer */
+  footer {
+    font-size: 0.75rem;
+    text-align: center;
+    padding: 1rem;
+  }
+}
+
+/* Estilos específicos para tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .device-banner {
+    display: block !important;
+    border-color: #6610f2;
+    background: rgba(102,16,242,0.08);
+    color: #6610f2;
+  }
+  
+  .card {
+    border: 1px solid rgba(13,110,253,0.12);
+  }
+  
+  .card-body {
+    padding: 1.25rem;
   }
 }
