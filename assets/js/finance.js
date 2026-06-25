@@ -583,10 +583,11 @@ document.addEventListener('DOMContentLoaded', () => {
     tbody.addEventListener('click', (ev) => {
       console.log('Click en tbody:', ev.target, ev.target.tagName);
       
-      // Buscar el botón más cercano (puede ser el emoji o el botón mismo)
-      const editBtn = ev.target.closest('.edit-btn');
-      const duplicateBtn = ev.target.closest('.duplicate-btn');
-      const deleteBtn = ev.target.closest('.delete-btn');
+      // Buscar el botón más cercano usando currentTarget en lugar de target
+      // Esto asegura que funcionará incluso si se hace clic en el emoji o ícono dentro del botón
+      const editBtn = ev.target.closest && ev.target.closest('.edit-btn');
+      const duplicateBtn = ev.target.closest && ev.target.closest('.duplicate-btn');
+      const deleteBtn = ev.target.closest && ev.target.closest('.delete-btn');
       
       if(editBtn){
         ev.preventDefault();
