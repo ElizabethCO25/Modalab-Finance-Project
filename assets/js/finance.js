@@ -575,35 +575,38 @@ function renderEntries(entries){
     });
   });
   
-  // Configurar eventos para botones de acción (editar, duplicar, eliminar)
-  tbody.querySelectorAll('.edit-btn').forEach(btn => {
-    btn.addEventListener('click', (ev) => {
+  // Configurar eventos para botones de acción usando delegación desde tbody
+  tbody.addEventListener('click', (ev) => {
+    const editBtn = ev.target.closest('.edit-btn');
+    const duplicateBtn = ev.target.closest('.duplicate-btn');
+    const deleteBtn = ev.target.closest('.delete-btn');
+    
+    if (editBtn) {
       ev.preventDefault();
       ev.stopPropagation();
-      const id = btn.getAttribute('data-id');
+      const id = editBtn.getAttribute('data-id');
       console.log('Editar ID:', id);
       if(id) editEntry(id);
-    });
-  });
-  
-  tbody.querySelectorAll('.duplicate-btn').forEach(btn => {
-    btn.addEventListener('click', (ev) => {
+      return;
+    }
+    
+    if (duplicateBtn) {
       ev.preventDefault();
       ev.stopPropagation();
-      const id = btn.getAttribute('data-id');
+      const id = duplicateBtn.getAttribute('data-id');
       console.log('Duplicar ID:', id);
       if(id) duplicateEntry(id);
-    });
-  });
-  
-  tbody.querySelectorAll('.delete-btn').forEach(btn => {
-    btn.addEventListener('click', (ev) => {
+      return;
+    }
+    
+    if (deleteBtn) {
       ev.preventDefault();
       ev.stopPropagation();
-      const id = btn.getAttribute('data-id');
+      const id = deleteBtn.getAttribute('data-id');
       console.log('Eliminar ID:', id);
       if(id) deleteEntry(id);
-    });
+      return;
+    }
   });
 }
 
