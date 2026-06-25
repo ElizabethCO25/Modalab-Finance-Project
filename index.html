@@ -265,12 +265,9 @@
             <div class="card-body">
               <h5 class="card-title">Filtrar y exportar</h5>
               <div class="mb-2 d-flex gap-2 align-items-center flex-wrap">
-                <label for="filterMonth" class="visually-hidden">Filtrar por mes</label>
-                <input type="month" id="filterMonth" class="form-control" title="Filtrar por mes">
-                <label for="filterStart" class="visually-hidden">Desde</label>
-                <input type="date" id="filterStart" class="form-control" title="Desde">
-                <label for="filterEnd" class="visually-hidden">Hasta</label>
-                <input type="date" id="filterEnd" class="form-control" title="Hasta">
+                <input type="text" id="filterMonth" class="form-control" placeholder="Filtrar por mes" onfocus="(this.type='month')" onblur="(this.value ? this.type='month' : this.type='text')">
+                <input type="text" id="filterStart" class="form-control" placeholder="Desde" onfocus="(this.type='date')" onblur="(this.value ? this.type='date' : this.type='text')">
+                <input type="text" id="filterEnd" class="form-control" placeholder="Hasta" onfocus="(this.type='date')" onblur="(this.value ? this.type='date' : this.type='text')">
                 <select id="filterCategory" class="form-select">
                   <option value="">Filtrar por categoría</option>
                   <option value="Sueldo">Sueldo</option>
