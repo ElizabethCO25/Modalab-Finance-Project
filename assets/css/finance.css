@@ -61,6 +61,14 @@ body {
   .btn {
     min-height: 48px;
   }
+  
+  /* Asegurar que los botones de acción sean clickeables */
+  .edit-btn,
+  .duplicate-btn,
+  .delete-btn {
+    min-height: auto !important;
+    cursor: pointer !important;
+  }
   #entryForm .mb-2 {
     margin-bottom: 1rem;
   }
