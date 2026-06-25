@@ -538,6 +538,7 @@ async function editEntry(id){
 
 function renderEntries(entries){
   const tbody = document.querySelector('#entriesTable tbody');
+  if (!tbody) return; // Si no existe el tbody, salir
   tbody.innerHTML = '';
   const sorted = entries.slice().sort(compareDatesDesc);
   
@@ -553,9 +554,9 @@ function renderEntries(entries){
       <td>${e.description || ''}</td>
       <td class="no-print">
         <div class="btn-group btn-group-sm">
-          <button class="btn btn-outline-primary edit-btn" data-id="${e.id}" title="Editar">✏️</button>
-          <button class="btn btn-outline-success duplicate-btn" data-id="${e.id}" title="Duplicar">📋</button>
-          <button class="btn btn-outline-danger delete-btn" data-id="${e.id}" title="Eliminar">🗑️</button>
+          <button class="btn btn-outline-primary edit-btn" data-id="${e.id}" id="edit-${e.id}" title="Editar">✏️</button>
+          <button class="btn btn-outline-success duplicate-btn" data-id="${e.id}" id="dup-${e.id}" title="Duplicar">📋</button>
+          <button class="btn btn-outline-danger delete-btn" data-id="${e.id}" id="del-${e.id}" title="Eliminar">🗑️</button>
         </div>
       </td>`;
     tbody.appendChild(tr);
@@ -580,6 +581,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const tbody = document.querySelector('#entriesTable tbody');
   if(tbody){
     tbody.addEventListener('click', (ev) => {
+      console.log('Click en tbody:', ev.target, ev.target.tagName);
+      
+      // Buscar el botón más cercano (puede ser el emoji o el botón mismo)
       const editBtn = ev.target.closest('.edit-btn');
       const duplicateBtn = ev.target.closest('.duplicate-btn');
       const deleteBtn = ev.target.closest('.delete-btn');
@@ -587,15 +591,21 @@ document.addEventListener('DOMContentLoaded', () => {
       if(editBtn){
         ev.preventDefault();
         ev.stopPropagation();
-        editEntry(editBtn.dataset.id);
+        const id = editBtn.dataset.id;
+        console.log('Editar ID:', id);
+        if(id) editEntry(id);
       } else if(duplicateBtn){
         ev.preventDefault();
         ev.stopPropagation();
-        duplicateEntry(duplicateBtn.dataset.id);
+        const id = duplicateBtn.dataset.id;
+        console.log('Duplicar ID:', id);
+        if(id) duplicateEntry(id);
       } else if(deleteBtn){
         ev.preventDefault();
         ev.stopPropagation();
-        deleteEntry(deleteBtn.dataset.id);
+        const id = deleteBtn.dataset.id;
+        console.log('Eliminar ID:', id);
+        if(id) deleteEntry(id);
       }
     });
   }
