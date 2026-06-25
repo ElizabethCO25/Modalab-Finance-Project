@@ -1098,25 +1098,18 @@ function updateSummaryDisplay() {
         summaryDiv.innerHTML = `
             <div class="row text-center">
                 <div class="col-4">
-                    <h6 class="text-success">Ingresos</h6>
-                    <h4>S/ ${summaryData.ingresos.toLocaleString('es-ES', {minimumFractionDigits: 2})}</h4>
+                    <h6>${monthName} ${year}</h6>
+                    <p><strong>Ingresos:</strong> S/ ${summaryData.ingresos.toFixed(2)}</p>
+                    <p><strong>Egresos:</strong> S/ ${summaryData.egresos.toFixed(2)}</p>
+                    <p><strong>Balance:</strong> S/ ${summaryData.balance.toFixed(2)}</p>
                 </div>
-                <div class="col-4">
-                    <h6 class="text-danger">Egresos</h6>
-                    <h4>S/ ${summaryData.egresos.toLocaleString('es-ES', {minimumFractionDigits: 2})}</h4>
-                </div>
-                <div class="col-4">
-                    <h6 class="${summaryData.balance >= 0 ? 'text-primary' : 'text-danger'}">Balance</h6>
-                    <h4>S/ ${summaryData.balance.toLocaleString('es-ES', {minimumFractionDigits: 2})}</h4>
-                </div>
-            </div>
-            <div class="text-center mt-2 text-muted small">
-                Resumen de ${monthName} ${year}
             </div>
         `;
     }
+    
+    // Actualizar también la tabla de registros
+    renderEntries(allEntries);
 }
-
 
 // Conectar el evento al selector
 // Dentro de tu función de inicialización...
