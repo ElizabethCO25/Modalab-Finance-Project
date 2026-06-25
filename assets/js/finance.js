@@ -18,7 +18,7 @@ let userSettings = { categories: { ingresos: [...defaultCategories.ingresos], eg
 let uiSettings = { appTitle: 'Registro de Ingresos y Egresos', logoUrl: '', primaryColor: '#0d6efd', bgColor: '#f8f9fa', bgImageUrl: '' };
 let chartCenter = null;
 let monthChart = null;
-let currentUser = null;
+let allEntries = []; // Variable global para almacenar todos los registros
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
 
@@ -55,40 +55,28 @@ function compareDatesDesc(a, b){
 }
 
 async function apiLoadEntries(){
-  try {
-    const snapshot = await entriesRef.orderBy('date', 'desc').get();
-    const entries = [];
-    snapshot.forEach(doc => entries.push({ id: doc.id, ...doc.data() }));
-    return entries;
-  } catch (e) {
-    console.warn('Firestore no disponible, usando localStorage', e.message || e);
-    return loadEntriesLocal();
-  }
+  const entries = await apiLoadEntries();
+    allEntries = entries; // <--- GUARDAR LOS DATOS EN LA VARIABLE GLOBAL
+    
+    // ... resto del código que renderiza la tabla o lista ...
+    renderTable(); // Ejemplo: tu función que dibuja la tabla
+    
+    // IMPORTANTE: Actualizar el resumen apenas carguen los datos
+    if (typeof updateSummaryDisplay === 'function') {
+        updateSummaryDisplay();
+    }
 }
 
 async function apiSaveEntry(entry){
-  try {
-    await entriesRef.doc(entry.id).set(entry);
-    return true;
-  } catch (e) {
-    console.warn('Error guardando en Firestore, guardando en localStorage', e.message || e);
-    const entries = loadEntriesLocal();
-    entries.push(entry);
-    saveEntriesLocal(entries);
-    return false;
-  }
+  // Después de guardar exitosamente en Firebase/Local:
+allEntries.unshift(newEntry); // Agrega el nuevo registro al inicio de la lista global
+updateSummaryDisplay(); // Recalcula el resumen inmediatamente
 }
 
 async function apiDeleteEntry(id){
-  try {
-    await entriesRef.doc(id).delete();
-    return true;
-  } catch (e) {
-    console.warn('Error borrando en Firestore, borrando en localStorage', e.message || e);
-    const entries = loadEntriesLocal().filter(x => x.id !== id);
-    saveEntriesLocal(entries);
-    return false;
-  }
+  // Después de borrar exitosamente:
+allEntries = allEntries.filter(e => e.id !== idToDelete); // Filtra la lista global
+updateSummaryDisplay(); // Recalcula el resumen
 }
 
 function loadEntriesLocal(){
@@ -861,4 +849,86 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else {
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
   }
-});
+}) //aqui
+
+// Función para calcular el resumen filtrado por mes
+//Añade o modifica esta función para que acepte un año y mes específicos:
+function calculateMonthlySummary(year, month) {
+    // Obtener todos los registros (asegúrate de tener 'allEntries' cargado o pásalo como argumento)
+    const entries = allEntries || []; 
+    
+    let ingresos = 0;
+    let egresos = 0;
+
+    entries.forEach(entry => {
+        const [eYear, eMonth] = entry.date.split('-').map(Number);
+        
+        // Filtrar solo si coincide el año y el mes
+        if (eYear === year && eMonth === month) {
+            if (entry.type === 'ingreso') {
+                ingresos += parseFloat(entry.amount) || 0;
+            } else if (entry.type === 'egreso') {
+                egresos += parseFloat(entry.amount) || 0;
+            }
+        }
+    });
+
+    const balance = ingresos - egresos;
+
+    return { ingresos, egresos, balance };
+}
+
+//Función para actualizar la vista del resumen
+//Esta función leerá el selector y llamará al cálculo:
+function updateSummaryDisplay() {
+    const selector = document.getElementById('chartCenterMonth');
+    if (!selector) return;
+
+    const selectedValue = selector.value; // Formato "YYYY-MM"
+    if (!selectedValue) return;
+
+    const [year, month] = selectedValue.split('-').map(Number);
+    const summaryData = calculateMonthlySummary(year, month);
+
+    const summaryDiv = document.getElementById('summary');
+    if (summaryDiv) {
+        // Formatear nombres de meses para el título
+        const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        const monthName = monthNames[month - 1];
+
+        summaryDiv.innerHTML = `
+            <div class="row text-center">
+                <div class="col-4">
+                    <h6 class="text-success">Ingresos</h6>
+                    <h4>$${summaryData.ingresos.toLocaleString('es-ES', {minimumFractionDigits: 2})}</h4>
+                </div>
+                <div class="col-4">
+                    <h6 class="text-danger">Egresos</h6>
+                    <h4>$${summaryData.egresos.toLocaleString('es-ES', {minimumFractionDigits: 2})}</h4>
+                </div>
+                <div class="col-4">
+                    <h6 class="${summaryData.balance >= 0 ? 'text-primary' : 'text-danger'}">Balance</h6>
+                    <h4>$${summaryData.balance.toLocaleString('es-ES', {minimumFractionDigits: 2})}</h4>
+                </div>
+            </div>
+            <div class="text-center mt-2 text-muted small">
+                Resumen de ${monthName} ${year}
+            </div>
+        `;
+    }
+}
+
+
+// Conectar el evento al selector
+// Dentro de tu función de inicialización...
+const monthSelector = document.getElementById('chartCenterMonth');
+if (monthSelector) {
+    // Escuchar cambios en el selector
+    monthSelector.addEventListener('change', () => {
+        updateSummaryDisplay();
+        renderMonthChart(); // Si también quieres que el gráfico cambie
+    });
+    
+    // Llamar una vez al inicio para cargar el mes actual
+    updateSummaryDisplay();
+};
