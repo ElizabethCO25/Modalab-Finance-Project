@@ -265,18 +265,30 @@
             <div class="card-body">
               <h5 class="card-title">Filtrar y exportar</h5>
               <div class="mb-2 d-flex gap-2 align-items-center flex-wrap">
-                <input type="text" id="filterMonth" class="form-control" placeholder="Filtrar por mes" onfocus="(this.type='month')" onblur="(this.value ? this.type='month' : this.type='text')">
-                <input type="text" id="filterStart" class="form-control" placeholder="Desde" onfocus="(this.type='date')" onblur="(this.value ? this.type='date' : this.type='text')">
-                <input type="text" id="filterEnd" class="form-control" placeholder="Hasta" onfocus="(this.type='date')" onblur="(this.value ? this.type='date' : this.type='text')">
-                <select id="filterCategory" class="form-select">
-                  <option value="">Filtrar por categoría</option>
-                  <option value="Sueldo">Sueldo</option>
-                  <option value="Ventas">Ventas</option>
-                  <option value="Comida">Comida</option>
-                  <option value="Transporte">Transporte</option>
-                  <option value="Servicios">Servicios</option>
-                  <option value="Otra">Otra</option>
-                </select>
+                <div>
+                  <label class="form-label small mb-1">Filtrar por mes</label>
+                  <input type="month" id="filterMonth" class="form-control">
+                </div>
+                <div>
+                  <label class="form-label small mb-1">Desde</label>
+                  <input type="date" id="filterStart" class="form-control">
+                </div>
+                <div>
+                  <label class="form-label small mb-1">Hasta</label>
+                  <input type="date" id="filterEnd" class="form-control">
+                </div>
+                <div>
+                  <label class="form-label small mb-1">Filtrar por categoría</label>
+                  <select id="filterCategory" class="form-select">
+                    <option value="">Filtrar por categoría</option>
+                    <option value="Sueldo">Sueldo</option>
+                    <option value="Ventas">Ventas</option>
+                    <option value="Comida">Comida</option>
+                    <option value="Transporte">Transporte</option>
+                    <option value="Servicios">Servicios</option>
+                    <option value="Otra">Otra</option>
+                  </select>
+                </div>
               </div>
               <div class="mb-2 d-flex gap-2 flex-wrap">
                 <button class="btn btn-outline-primary" id="applyFilter">Aplicar</button>
