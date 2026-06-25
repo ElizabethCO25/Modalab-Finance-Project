@@ -538,6 +538,7 @@ async function editEntry(id){
 
 function renderEntries(entries){
   const tbody = document.querySelector('#entriesTable tbody');
+  if (!tbody) return; // Si no existe el tbody, salir
   tbody.innerHTML = '';
   const sorted = entries.slice().sort(compareDatesDesc);
   
@@ -553,9 +554,9 @@ function renderEntries(entries){
       <td>${e.description || ''}</td>
       <td class="no-print">
         <div class="btn-group btn-group-sm">
-          <button class="btn btn-outline-primary edit-btn" data-id="${e.id}" title="Editar">✏️</button>
-          <button class="btn btn-outline-success duplicate-btn" data-id="${e.id}" title="Duplicar">📋</button>
-          <button class="btn btn-outline-danger delete-btn" data-id="${e.id}" title="Eliminar">🗑️</button>
+          <button class="btn btn-outline-primary edit-btn" data-id="${e.id}" id="edit-${e.id}" title="Editar">✏️</button>
+          <button class="btn btn-outline-success duplicate-btn" data-id="${e.id}" id="dup-${e.id}" title="Duplicar">📋</button>
+          <button class="btn btn-outline-danger delete-btn" data-id="${e.id}" id="del-${e.id}" title="Eliminar">🗑️</button>
         </div>
       </td>`;
     tbody.appendChild(tr);
@@ -573,12 +574,42 @@ function renderEntries(entries){
       updateActionBar();
     });
   });
-  
-  // Event listeners para botones de acción
-  tbody.querySelectorAll('.edit-btn').forEach(b => b.addEventListener('click', ev => editEntry(ev.currentTarget.dataset.id)));
-  tbody.querySelectorAll('.duplicate-btn').forEach(b => b.addEventListener('click', ev => duplicateEntry(ev.currentTarget.dataset.id)));
-  tbody.querySelectorAll('.delete-btn').forEach(b => b.addEventListener('click', ev => deleteEntry(ev.currentTarget.dataset.id)));
 }
+
+// Delegación de eventos para botones de acción (se configura una sola vez)
+document.addEventListener('DOMContentLoaded', () => {
+  const tbody = document.querySelector('#entriesTable tbody');
+  if(tbody){
+    tbody.addEventListener('click', (ev) => {
+      console.log('Click en tbody:', ev.target, ev.target.tagName);
+      
+      // Buscar el botón más cercano (puede ser el emoji o el botón mismo)
+      const editBtn = ev.target.closest('.edit-btn');
+      const duplicateBtn = ev.target.closest('.duplicate-btn');
+      const deleteBtn = ev.target.closest('.delete-btn');
+      
+      if(editBtn){
+        ev.preventDefault();
+        ev.stopPropagation();
+        const id = editBtn.dataset.id;
+        console.log('Editar ID:', id);
+        if(id) editEntry(id);
+      } else if(duplicateBtn){
+        ev.preventDefault();
+        ev.stopPropagation();
+        const id = duplicateBtn.dataset.id;
+        console.log('Duplicar ID:', id);
+        if(id) duplicateEntry(id);
+      } else if(deleteBtn){
+        ev.preventDefault();
+        ev.stopPropagation();
+        const id = deleteBtn.dataset.id;
+        console.log('Eliminar ID:', id);
+        if(id) deleteEntry(id);
+      }
+    });
+  }
+});
 
 function computeMonthlyTotals(entries){
   const map = {};
@@ -1016,6 +1047,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
   } else {
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+    await refreshEntries();
   }
 }) //aqui
 
