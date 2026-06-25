@@ -1016,6 +1016,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
   } else {
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+    await refreshEntries();
   }
 }) //aqui
 
