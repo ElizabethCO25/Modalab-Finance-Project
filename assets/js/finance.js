@@ -591,19 +591,19 @@ document.addEventListener('DOMContentLoaded', () => {
       if(editBtn){
         ev.preventDefault();
         ev.stopPropagation();
-        const id = editBtn.dataset.id;
+        const id = editBtn.getAttribute('data-id');
         console.log('Editar ID:', id);
         if(id) editEntry(id);
       } else if(duplicateBtn){
         ev.preventDefault();
         ev.stopPropagation();
-        const id = duplicateBtn.dataset.id;
+        const id = duplicateBtn.getAttribute('data-id');
         console.log('Duplicar ID:', id);
         if(id) duplicateEntry(id);
       } else if(deleteBtn){
         ev.preventDefault();
         ev.stopPropagation();
-        const id = deleteBtn.dataset.id;
+        const id = deleteBtn.getAttribute('data-id');
         console.log('Eliminar ID:', id);
         if(id) deleteEntry(id);
       }
