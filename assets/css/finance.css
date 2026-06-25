@@ -128,6 +128,16 @@ body {
     visibility: hidden !important; 
   }
   
+  /* Ocultar barra de acciones y checkboxes en impresión */
+  .action-bar,
+  .action-bar *,
+  input[type="checkbox"],
+  .no-print,
+  .no-print * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
   /* Mostrar solo la tabla de registros y su título */
   #historyTab .card:nth-child(2) .card-title,
   #historyTab .card:nth-child(2) .table-responsive,

@@ -19,6 +19,7 @@ let uiSettings = { appTitle: 'Registro de Ingresos y Egresos', logoUrl: '', prim
 let chartCenter = null;
 let monthChart = null;
 let allEntries = []; // Variable global para almacenar todos los registros
+let selectedEntries = new Set(); // IDs de registros seleccionados
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
 
@@ -425,6 +426,41 @@ async function addEntry(e){
     return alert('Fecha y monto son obligatorios');
   }
 
+  // Si estamos editando, actualizar en lugar de crear
+  if(window.editingEntryId){
+    const entry = allEntries.find(e => e.id === window.editingEntryId);
+    if(entry){
+      entry.date = date;
+      entry.type = type;
+      entry.category = category;
+      entry.amount = Math.abs(amount);
+      entry.description = description;
+      
+      try {
+        await entriesRef.doc(window.editingEntryId).update(entry);
+      } catch (e) {
+        console.warn('Error actualizando en Firestore', e.message || e);
+        const entries = loadEntriesLocal();
+        const idx = entries.findIndex(x => x.id === window.editingEntryId);
+        if(idx !== -1) entries[idx] = entry;
+        saveEntriesLocal(entries);
+        allEntries = entries;
+      }
+      
+      window.editingEntryId = null;
+      await refreshEntries();
+      document.getElementById('entryForm').reset();
+      document.getElementById('categoryCustom').style.display = 'none';
+      
+      // Restaurar botón guardar
+      const saveBtn = document.getElementById('saveBtn');
+      saveBtn.textContent = 'Guardar';
+      saveBtn.classList.remove('btn-warning');
+      saveBtn.classList.add('btn-primary');
+      return;
+    }
+  }
+
   const entry = {
     id: uid(),
     date,
@@ -443,25 +479,105 @@ async function addEntry(e){
 async function deleteEntry(id){
   if (!confirm('¿Eliminar este registro?')) return;
   await apiDeleteEntry(id);
+  selectedEntries.delete(id);
   await refreshEntries();
+}
+
+async function duplicateEntry(id){
+  const entry = allEntries.find(e => e.id === id);
+  if(!entry) return;
+  
+  const newEntry = {
+    ...entry,
+    id: uid(),
+    date: new Date().toISOString().split('T')[0]
+  };
+  
+  await apiSaveEntry(newEntry);
+  await refreshEntries();
+  alert('Registro duplicado exitosamente');
+}
+
+async function editEntry(id){
+  const entry = allEntries.find(e => e.id === id);
+  if(!entry) return;
+  
+  // Cargar los datos en el formulario
+  document.getElementById('date').value = entry.date;
+  document.getElementById('type').value = entry.type;
+  document.getElementById('amount').value = entry.amount;
+  document.getElementById('description').value = entry.description || '';
+  
+  // Manejar categoría
+  const categorySelect = document.getElementById('category');
+  const categoryCustom = document.getElementById('categoryCustom');
+  
+  const existingOptions = Array.from(categorySelect.options).map(opt => opt.value);
+  if(existingOptions.includes(entry.category)){
+    categorySelect.value = entry.category;
+    categoryCustom.style.display = 'none';
+  } else {
+    categorySelect.value = 'Otra';
+    categoryCustom.value = entry.category;
+    categoryCustom.style.display = 'block';
+  }
+  
+  // Cambiar a la pestaña de registro
+  const mainTab = document.querySelector('#main-tab');
+  if(mainTab) mainTab.click();
+  
+  // Guardar el ID para actualizar en lugar de crear nuevo
+  window.editingEntryId = id;
+  
+  // Cambiar texto del botón guardar
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.textContent = 'Actualizar';
+  saveBtn.classList.remove('btn-primary');
+  saveBtn.classList.add('btn-warning');
 }
 
 function renderEntries(entries){
   const tbody = document.querySelector('#entriesTable tbody');
   tbody.innerHTML = '';
   const sorted = entries.slice().sort(compareDatesDesc);
+  
   for (const e of sorted) {
     const tr = document.createElement('tr');
+    const isSelected = selectedEntries.has(e.id);
     tr.innerHTML = `
+      <td><input type="checkbox" class="entry-checkbox" data-id="${e.id}" ${isSelected ? 'checked' : ''}></td>
       <td>${e.date}</td>
       <td>${e.type}</td>
       <td>${e.category}</td>
       <td>${e.type === 'egreso' ? '-' : ''}${Number(e.amount).toFixed(2)}</td>
       <td>${e.description || ''}</td>
-      <td><button class="btn btn-sm btn-outline-danger" data-id="${e.id}">Eliminar</button></td>`;
+      <td class="no-print">
+        <div class="btn-group btn-group-sm">
+          <button class="btn btn-outline-primary edit-btn" data-id="${e.id}" title="Editar">✏️</button>
+          <button class="btn btn-outline-success duplicate-btn" data-id="${e.id}" title="Duplicar">📋</button>
+          <button class="btn btn-outline-danger delete-btn" data-id="${e.id}" title="Eliminar">🗑️</button>
+        </div>
+      </td>`;
     tbody.appendChild(tr);
   }
-  tbody.querySelectorAll('button[data-id]').forEach(b => b.addEventListener('click', ev => deleteEntry(ev.currentTarget.dataset.id)));
+  
+  // Event listeners para checkboxes
+  tbody.querySelectorAll('.entry-checkbox').forEach(cb => {
+    cb.addEventListener('change', (ev) => {
+      const id = ev.currentTarget.dataset.id;
+      if(ev.currentTarget.checked){
+        selectedEntries.add(id);
+      } else {
+        selectedEntries.delete(id);
+      }
+      updateActionBar();
+    });
+  });
+  
+  // Event listeners para botones de acción
+  tbody.querySelectorAll('.edit-btn').forEach(b => b.addEventListener('click', ev => editEntry(ev.currentTarget.dataset.id)));
+  tbody.querySelectorAll('.duplicate-btn').forEach(b => b.addEventListener('click', ev => duplicateEntry(ev.currentTarget.dataset.id)));
+  tbody.querySelectorAll('.delete-btn').forEach(b => b.addEventListener('click', ev => deleteEntry(ev.currentTarget.dataset.id)));
 }
 
 function computeMonthlyTotals(entries){
@@ -790,7 +906,15 @@ async function init(){
   });
   
   document.getElementById('entryForm').addEventListener('submit', addEntry);
-  document.getElementById('clearBtn').addEventListener('click', () => document.getElementById('entryForm').reset());
+  // Limpiar selección y estado de edición al limpiar formulario
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    document.getElementById('entryForm').reset();
+    window.editingEntryId = null;
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.textContent = 'Guardar';
+    saveBtn.classList.remove('btn-warning');
+    saveBtn.classList.add('btn-primary');
+  });
   document.getElementById('applyFilter').addEventListener('click', applyFilter);
   document.getElementById('clearFilters').addEventListener('click', clearFilters);
   document.getElementById('exportXlsx').addEventListener('click', exportXlsx);
@@ -976,3 +1100,114 @@ if (monthSelector) {
     // Llamar una vez al inicio para cargar el mes actual
     updateSummaryDisplay();
 };
+
+// Funciones para la barra de acciones global (estilo Gmail)
+function updateActionBar(){
+  const actionBar = document.getElementById('actionBar');
+  const selectedCount = document.getElementById('selectedCount');
+  const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+  
+  if(selectedEntries.size > 0){
+    actionBar.style.display = 'block';
+  } else {
+    actionBar.style.display = 'none';
+  }
+  
+  selectedCount.textContent = selectedEntries.size;
+  
+  // Actualizar estado del checkbox "Seleccionar todos"
+  if(selectAllCheckbox){
+    const visibleCheckboxes = document.querySelectorAll('.entry-checkbox');
+    const allChecked = visibleCheckboxes.length > 0 && Array.from(visibleCheckboxes).every(cb => cb.checked);
+    selectAllCheckbox.checked = allChecked;
+    selectAllCheckbox.indeterminate = !allChecked && selectedEntries.size > 0;
+  }
+}
+
+async function bulkDelete(){
+  if(selectedEntries.size === 0) return;
+  
+  if(!confirm(`¿Eliminar ${selectedEntries.size} registro(s) seleccionado(s)?`)) return;
+  
+  for(const id of selectedEntries){
+    await apiDeleteEntry(id);
+  }
+  
+  selectedEntries.clear();
+  updateActionBar();
+  await refreshEntries();
+}
+
+async function bulkDuplicate(){
+  if(selectedEntries.size === 0) return;
+  
+  for(const id of selectedEntries){
+    const entry = allEntries.find(e => e.id === id);
+    if(entry){
+      const newEntry = {
+        ...entry,
+        id: uid(),
+        date: new Date().toISOString().split('T')[0]
+      };
+      await apiSaveEntry(newEntry);
+    }
+  }
+  
+  selectedEntries.clear();
+  updateActionBar();
+  await refreshEntries();
+  alert(`${selectedEntries.size} registro(s) duplicado(s) exitosamente`);
+}
+
+function selectAllEntries(){
+  const checkboxes = document.querySelectorAll('.entry-checkbox');
+  checkboxes.forEach(cb => {
+    cb.checked = true;
+    selectedEntries.add(cb.dataset.id);
+  });
+  updateActionBar();
+}
+
+function clearSelection(){
+  const checkboxes = document.querySelectorAll('.entry-checkbox');
+  checkboxes.forEach(cb => {
+    cb.checked = false;
+  });
+  selectedEntries.clear();
+  updateActionBar();
+}
+
+// Event listeners para la barra de acciones globales
+document.addEventListener('DOMContentLoaded', () => {
+  const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+  const bulkEditBtn = document.getElementById('bulkEditBtn');
+  const bulkDuplicateBtn = document.getElementById('bulkDuplicateBtn');
+  const selectAllBtn = document.getElementById('selectAllBtn');
+  const clearSelectionBtn = document.getElementById('clearSelectionBtn');
+  const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+  
+  if(bulkDeleteBtn) bulkDeleteBtn.addEventListener('click', bulkDelete);
+  if(bulkDuplicateBtn) bulkDuplicateBtn.addEventListener('click', bulkDuplicate);
+  if(selectAllBtn) selectAllBtn.addEventListener('click', selectAllEntries);
+  if(clearSelectionBtn) clearSelectionBtn.addEventListener('click', clearSelection);
+  
+  if(selectAllCheckbox){
+    selectAllCheckbox.addEventListener('change', (e) => {
+      if(e.target.checked){
+        selectAllEntries();
+      } else {
+        clearSelection();
+      }
+    });
+  }
+  
+  // Manejar botón de editar (redirige al formulario para el primer elemento seleccionado)
+  if(bulkEditBtn){
+    bulkEditBtn.addEventListener('click', () => {
+      if(selectedEntries.size > 0){
+        const firstId = Array.from(selectedEntries)[0];
+        editEntry(firstId);
+      }
+    });
+  }
+});
