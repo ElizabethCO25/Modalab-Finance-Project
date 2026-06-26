@@ -59,7 +59,11 @@ async function apiLoadEntries(){
   try {
     const snapshot = await entriesRef.get();
     const entries = [];
-    snapshot.forEach(doc => entries.push({ id: doc.id, ...doc.data() }));
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      // Asegurar que el id del objeto sea siempre el doc.id real de Firestore
+      entries.push({ id: doc.id, ...data });
+    });
     allEntries = entries;
     return entries;
   } catch (e) {
@@ -72,8 +76,11 @@ async function apiLoadEntries(){
 
 async function apiSaveEntry(entry){
   try {
+    console.log('apiSaveEntry: creando nuevo registro con datos:', entry);
+    // Nuevo registro: crear documento y asignar su id real
     const doc = await entriesRef.add(entry);
-    entry.id = doc.id; // Asignar el doc.id real de Firestore
+    entry.id = doc.id;
+    console.log('apiSaveEntry: nuevo ID asignado:', entry.id);
     allEntries.unshift(entry);
     updateSummaryDisplay();
   } catch (e) {
@@ -88,6 +95,7 @@ async function apiSaveEntry(entry){
 
 async function apiDeleteEntry(id){
   try {
+    console.log('apiDeleteEntry: eliminando doc con ID:', id);
     await entriesRef.doc(id).delete();
     allEntries = allEntries.filter(e => e.id !== id);
     updateSummaryDisplay();
@@ -103,15 +111,28 @@ async function apiDeleteEntry(id){
 
 async function apiUpdateEntry(entry){
   try {
+    console.log('apiUpdateEntry: actualizando doc con ID:', entry.id);
+    // Usar set con merge para actualizar o crear si el doc no existe
     await entriesRef.doc(entry.id).set(entry, { merge: true });
-    allEntries = allEntries.map(e => e.id === entry.id ? entry : e);
+    // Actualizar array local: reemplazar si existe, agregar si no
+    const existingIdx = allEntries.findIndex(e => e.id === entry.id);
+    if(existingIdx >= 0){
+      allEntries[existingIdx] = entry;
+    } else {
+      allEntries.unshift(entry);
+    }
     updateSummaryDisplay();
   } catch (e) {
     console.warn('Error actualizando en Firestore, usando localStorage', e.message || e);
     const entries = loadEntriesLocal();
-    const updated = entries.map(e => e.id === entry.id ? entry : e);
-    saveEntriesLocal(updated);
-    allEntries = updated;
+    const existingIdx = entries.findIndex(e => e.id === entry.id);
+    if(existingIdx >= 0){
+      entries[existingIdx] = entry;
+    } else {
+      entries.unshift(entry);
+    }
+    saveEntriesLocal(entries);
+    allEntries = entries;
     updateSummaryDisplay();
   }
 }
@@ -444,6 +465,7 @@ async function addEntry(e){
 
   // Si estamos editando, actualizar en lugar de crear
   if(window.editingEntryId){
+    console.log('Entrando en modo edición, ID:', window.editingEntryId);
     const entry = {
       id: window.editingEntryId,
       date: date,
@@ -485,6 +507,8 @@ async function addEntry(e){
 
 async function deleteEntry(id){
   if (!confirm('¿Eliminar este registro?')) return;
+  console.log('Eliminando entrada con ID:', id);
+  console.log('Entradas antes de eliminar:', allEntries.map(e => e.id));
   await apiDeleteEntry(id);
   selectedEntries.delete(id);
   await refreshEntries();
@@ -541,6 +565,8 @@ async function editEntry(id){
   saveBtn.textContent = 'Actualizar';
   saveBtn.classList.remove('btn-primary');
   saveBtn.classList.add('btn-warning');
+  
+  console.log('Editando entrada con ID:', id, 'Estado editingEntryId:', window.editingEntryId);
 }
 
 function renderEntries(entries){
