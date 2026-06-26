@@ -61,8 +61,9 @@ async function apiLoadEntries(){
     const entries = [];
     snapshot.forEach(doc => {
       const data = doc.data();
-      // Asegurar que el id del objeto sea siempre el doc.id real de Firestore
-      entries.push({ id: doc.id, ...data });
+      // Eliminar cualquier campo 'id' interno del documento y usar SIEMPRE doc.id
+      const { id: _, ...restData } = data;
+      entries.push({ id: doc.id, ...restData });
     });
     allEntries = entries;
     return entries;
@@ -78,23 +79,24 @@ async function apiSaveEntry(entry){
   try {
     console.log('apiSaveEntry: creando nuevo registro con datos:', entry);
     // Nuevo registro: crear documento y asignar su id real
-    // Crear una copia para no modificar el objeto original
-    const entryCopy = { ...entry };
-    const doc = await entriesRef.add(entryCopy);
-    entryCopy.id = doc.id;
-    console.log('apiSaveEntry: nuevo ID asignado:', entryCopy.id);
-    allEntries.unshift(entryCopy);
+    // Crear una copia SIN el campo id para evitar que Firestore tenga un campo 'id' redundante
+    const { id: _, ...entryData } = entry;
+    const doc = await entriesRef.add(entryData);
+    const newEntry = { id: doc.id, ...entryData };
+    console.log('apiSaveEntry: nuevo ID asignado:', doc.id);
+    allEntries.unshift(newEntry);
     updateSummaryDisplay();
-    return entryCopy;
+    return newEntry;
   } catch (e) {
     console.warn('Error guardando en Firestore, usando localStorage', e.message || e);
     const entries = loadEntriesLocal();
-    const entryCopy = { ...entry };
-    entries.unshift(entryCopy);
+    const { id: _, ...entryData } = entry;
+    const newEntry = { id: uid(), ...entryData };
+    entries.unshift(newEntry);
     saveEntriesLocal(entries);
     allEntries = entries;
     updateSummaryDisplay();
-    return entryCopy;
+    return newEntry;
   }
 }
 
@@ -102,7 +104,9 @@ async function apiDeleteEntry(id){
   try {
     console.log('apiDeleteEntry: eliminando doc con ID:', id);
     await entriesRef.doc(id).delete();
+    // Filtrar usando el ID correcto (doc.id)
     allEntries = allEntries.filter(e => e.id !== id);
+    console.log('apiDeleteEntry: entradas restantes:', allEntries.map(e => e.id));
     updateSummaryDisplay();
   } catch (e) {
     console.warn('Error borrando en Firestore, usando localStorage', e.message || e);
@@ -116,33 +120,43 @@ async function apiDeleteEntry(id){
 
 async function apiUpdateEntry(entry, docId){
   try {
-    // Usar siempre el docId real de Firestore, no el entry.id interno
-    const idToUpdate = docId || entry.id;
-    console.log('apiUpdateEntry: actualizando doc con ID:', idToUpdate);
+    // Usar SIEMPRE el docId pasado como parámetro (es el doc.id real de Firestore)
+    if(!docId){
+      console.error('apiUpdateEntry: docId es requerido');
+      return;
+    }
+    console.log('apiUpdateEntry: actualizando doc con ID:', docId);
     
     // Crear una copia del entry sin el campo id para evitar inconsistencias
     const { id, ...entryData } = entry;
     
-    // Usar set con merge para actualizar o crear si el doc no existe
-    await entriesRef.doc(idToUpdate).set(entryData, { merge: true });
+    // Actualizar el documento en Firestore
+    await entriesRef.doc(docId).set(entryData, { merge: true });
     
     // Actualizar array local: buscar por docId y reemplazar
-    const existingIdx = allEntries.findIndex(e => e.id === idToUpdate);
-    const updatedEntry = { ...entryData, id: idToUpdate };
+    const existingIdx = allEntries.findIndex(e => e.id === docId);
+    const updatedEntry = { ...entryData, id: docId };
     
     if(existingIdx >= 0){
+      // Reemplazar el registro existente
       allEntries[existingIdx] = updatedEntry;
+      console.log('apiUpdateEntry: registro actualizado en índice', existingIdx);
     } else {
+      // Si no existe, agregarlo (caso raro, pero posible)
       allEntries.unshift(updatedEntry);
+      console.log('apiUpdateEntry: registro agregado (no existía previamente)');
     }
     updateSummaryDisplay();
   } catch (e) {
     console.warn('Error actualizando en Firestore, usando localStorage', e.message || e);
+    if(!docId){
+      console.error('apiUpdateEntry: docId es requerido incluso en fallback');
+      return;
+    }
     const entries = loadEntriesLocal();
-    const idToUpdate = docId || entry.id;
     const { id, ...entryData } = entry;
-    const updatedEntry = { ...entryData, id: idToUpdate };
-    const existingIdx = entries.findIndex(e => e.id === idToUpdate);
+    const updatedEntry = { ...entryData, id: docId };
+    const existingIdx = entries.findIndex(e => e.id === docId);
     if(existingIdx >= 0){
       entries[existingIdx] = updatedEntry;
     } else {
