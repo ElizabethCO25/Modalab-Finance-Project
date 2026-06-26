@@ -522,11 +522,16 @@ async function addEntry(e){
     saveBtn.textContent = 'Guardar';
     saveBtn.classList.remove('btn-warning');
     saveBtn.classList.add('btn-primary');
+    
+    // Volver a la vista de listado/historial
+    const historyTab = document.querySelector('#history-tab');
+    if(historyTab) historyTab.click();
+    
     return;
   }
 
+  // Crear entry SIN campo id - apiSaveEntry asignará el doc.id real
   const entry = {
-    id: uid(),
     date,
     type,
     category,
