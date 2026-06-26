@@ -59,8 +59,17 @@ async function apiLoadEntries(){
   try {
     const snapshot = await entriesRef.get();
     const entries = [];
-    snapshot.forEach(doc => entries.push({ id: doc.id, ...doc.data() }));
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      // Eliminar CUALQUIER campo 'id' interno del documento y usar SIEMPRE doc.id
+      // Esto asegura consistencia incluso si hay documentos antiguos con campo 'id' interno
+      const { id: internalId, ...restData } = data;
+      const entry = { id: doc.id, ...restData };
+      console.log('apiLoadEntries: cargando doc.id=', doc.id, '| internalId=', internalId, '| entry.id=', entry.id);
+      entries.push(entry);
+    });
     allEntries = entries;
+    console.log('apiLoadEntries: total cargados:', entries.length, '| IDs:', entries.map(e => e.id));
     return entries;
   } catch (e) {
     console.warn('Firestore no disponible, usando localStorage', e.message || e);
@@ -72,23 +81,36 @@ async function apiLoadEntries(){
 
 async function apiSaveEntry(entry){
   try {
-    await entriesRef.add(entry);
-    allEntries.unshift(entry);
+    console.log('apiSaveEntry: creando nuevo registro con datos:', entry);
+    // Nuevo registro: crear documento y asignar su id real
+    // Crear una copia SIN el campo id para evitar que Firestore tenga un campo 'id' redundante
+    const { id: _, ...entryData } = entry;
+    const doc = await entriesRef.add(entryData);
+    const newEntry = { id: doc.id, ...entryData };
+    console.log('apiSaveEntry: nuevo ID asignado:', doc.id);
+    allEntries.unshift(newEntry);
     updateSummaryDisplay();
+    return newEntry;
   } catch (e) {
     console.warn('Error guardando en Firestore, usando localStorage', e.message || e);
     const entries = loadEntriesLocal();
-    entries.unshift(entry);
+    const { id: _, ...entryData } = entry;
+    const newEntry = { id: uid(), ...entryData };
+    entries.unshift(newEntry);
     saveEntriesLocal(entries);
     allEntries = entries;
     updateSummaryDisplay();
+    return newEntry;
   }
 }
 
 async function apiDeleteEntry(id){
   try {
+    console.log('apiDeleteEntry: eliminando doc con ID:', id);
     await entriesRef.doc(id).delete();
+    // Filtrar usando el ID correcto (doc.id)
     allEntries = allEntries.filter(e => e.id !== id);
+    console.log('apiDeleteEntry: entradas restantes:', allEntries.map(e => e.id));
     updateSummaryDisplay();
   } catch (e) {
     console.warn('Error borrando en Firestore, usando localStorage', e.message || e);
@@ -96,6 +118,57 @@ async function apiDeleteEntry(id){
     const updated = entries.filter(e => e.id !== id);
     saveEntriesLocal(updated);
     allEntries = updated;
+    updateSummaryDisplay();
+  }
+}
+
+async function apiUpdateEntry(entry, docId){
+  try {
+    // Usar SIEMPRE el docId pasado como parámetro (es el doc.id real de Firestore)
+    if(!docId){
+      console.error('apiUpdateEntry: docId es requerido');
+      return;
+    }
+    console.log('apiUpdateEntry: actualizando doc con ID:', docId);
+    
+    // Crear una copia del entry sin el campo id para evitar inconsistencias
+    const { id, ...entryData } = entry;
+    
+    // Actualizar el documento en Firestore - USAR set SIN merge para reemplazar completamente
+    // y eliminar cualquier campo 'id' interno viejo que pueda existir
+    await entriesRef.doc(docId).set(entryData);
+    
+    // Actualizar array local: buscar por docId y reemplazar
+    const existingIdx = allEntries.findIndex(e => e.id === docId);
+    const updatedEntry = { ...entryData, id: docId };
+    
+    if(existingIdx >= 0){
+      // Reemplazar el registro existente
+      allEntries[existingIdx] = updatedEntry;
+      console.log('apiUpdateEntry: registro actualizado en índice', existingIdx);
+    } else {
+      // Si no existe, agregarlo (caso raro, pero posible)
+      allEntries.unshift(updatedEntry);
+      console.log('apiUpdateEntry: registro agregado (no existía previamente)');
+    }
+    updateSummaryDisplay();
+  } catch (e) {
+    console.warn('Error actualizando en Firestore, usando localStorage', e.message || e);
+    if(!docId){
+      console.error('apiUpdateEntry: docId es requerido incluso en fallback');
+      return;
+    }
+    const entries = loadEntriesLocal();
+    const { id, ...entryData } = entry;
+    const updatedEntry = { ...entryData, id: docId };
+    const existingIdx = entries.findIndex(e => e.id === docId);
+    if(existingIdx >= 0){
+      entries[existingIdx] = updatedEntry;
+    } else {
+      entries.unshift(updatedEntry);
+    }
+    saveEntriesLocal(entries);
+    allEntries = entries;
     updateSummaryDisplay();
   }
 }
@@ -428,37 +501,28 @@ async function addEntry(e){
 
   // Si estamos editando, actualizar en lugar de crear
   if(window.editingEntryId){
-    const entry = allEntries.find(e => e.id === window.editingEntryId);
-    if(entry){
-      entry.date = date;
-      entry.type = type;
-      entry.category = category;
-      entry.amount = Math.abs(amount);
-      entry.description = description;
-      
-      try {
-        await entriesRef.doc(window.editingEntryId).update(entry);
-      } catch (e) {
-        console.warn('Error actualizando en Firestore', e.message || e);
-        const entries = loadEntriesLocal();
-        const idx = entries.findIndex(x => x.id === window.editingEntryId);
-        if(idx !== -1) entries[idx] = entry;
-        saveEntriesLocal(entries);
-        allEntries = entries;
-      }
-      
-      window.editingEntryId = null;
-      await refreshEntries();
-      document.getElementById('entryForm').reset();
-      document.getElementById('categoryCustom').style.display = 'none';
-      
-      // Restaurar botón guardar
-      const saveBtn = document.getElementById('saveBtn');
-      saveBtn.textContent = 'Guardar';
-      saveBtn.classList.remove('btn-warning');
-      saveBtn.classList.add('btn-primary');
-      return;
-    }
+    console.log('Entrando en modo edición, ID:', window.editingEntryId);
+    const entry = {
+      date: date,
+      type: type,
+      category: category,
+      amount: Math.abs(amount),
+      description: description
+    };
+    
+    await apiUpdateEntry(entry, window.editingEntryId);
+    
+    window.editingEntryId = null;
+    await refreshEntries();
+    document.getElementById('entryForm').reset();
+    document.getElementById('categoryCustom').style.display = 'none';
+    
+    // Restaurar botón guardar
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.textContent = 'Guardar';
+    saveBtn.classList.remove('btn-warning');
+    saveBtn.classList.add('btn-primary');
+    return;
   }
 
   const entry = {
@@ -478,21 +542,29 @@ async function addEntry(e){
 
 async function deleteEntry(id){
   if (!confirm('¿Eliminar este registro?')) return;
+  console.log('Eliminando entrada con ID:', id);
+  console.log('Entradas antes de eliminar:', allEntries.map(e => e.id));
   await apiDeleteEntry(id);
   selectedEntries.delete(id);
   await refreshEntries();
 }
 
 async function duplicateEntry(id){
+  // Buscar la entrada por el ID recibido (que es el doc.id de Firestore)
   const entry = allEntries.find(e => e.id === id);
-  if(!entry) return;
+  if(!entry) {
+    console.error('No se encontró entrada con ID:', id);
+    return;
+  }
   
+  // Crear copia sin el campo id, apiSaveEntry asignará el nuevo doc.id
+  const { id: _, ...entryData } = entry;
   const newEntry = {
-    ...entry,
-    id: uid(),
+    ...entryData,
     date: new Date().toISOString().split('T')[0]
   };
   
+  console.log('Duplicando entrada:', entry.id, '-> nueva entrada:', newEntry);
   await apiSaveEntry(newEntry);
   await refreshEntries();
   alert('Registro duplicado exitosamente');
@@ -527,6 +599,8 @@ async function editEntry(id){
   if(mainTab) mainTab.click();
   
   // Guardar el ID para actualizar en lugar de crear nuevo
+  // IMPORTANTE: Usar el parámetro 'id' que es el doc.id real de Firestore,
+  // no entry.id que puede ser un uid() antiguo inconsistente
   window.editingEntryId = id;
   
   // Cambiar texto del botón guardar
@@ -534,6 +608,8 @@ async function editEntry(id){
   saveBtn.textContent = 'Actualizar';
   saveBtn.classList.remove('btn-primary');
   saveBtn.classList.add('btn-warning');
+  
+  console.log('Editando entrada - ID recibido (doc.id):', id, '| entry.id interno:', entry.id, '| editingEntryId:', window.editingEntryId);
 }
 
 function renderEntries(entries){
