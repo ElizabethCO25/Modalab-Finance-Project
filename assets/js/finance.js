@@ -61,11 +61,15 @@ async function apiLoadEntries(){
     const entries = [];
     snapshot.forEach(doc => {
       const data = doc.data();
-      // Eliminar cualquier campo 'id' interno del documento y usar SIEMPRE doc.id
-      const { id: _, ...restData } = data;
-      entries.push({ id: doc.id, ...restData });
+      // Eliminar CUALQUIER campo 'id' interno del documento y usar SIEMPRE doc.id
+      // Esto asegura consistencia incluso si hay documentos antiguos con campo 'id' interno
+      const { id: internalId, ...restData } = data;
+      const entry = { id: doc.id, ...restData };
+      console.log('apiLoadEntries: cargando doc.id=', doc.id, '| internalId=', internalId, '| entry.id=', entry.id);
+      entries.push(entry);
     });
     allEntries = entries;
+    console.log('apiLoadEntries: total cargados:', entries.length, '| IDs:', entries.map(e => e.id));
     return entries;
   } catch (e) {
     console.warn('Firestore no disponible, usando localStorage', e.message || e);
@@ -130,8 +134,9 @@ async function apiUpdateEntry(entry, docId){
     // Crear una copia del entry sin el campo id para evitar inconsistencias
     const { id, ...entryData } = entry;
     
-    // Actualizar el documento en Firestore
-    await entriesRef.doc(docId).set(entryData, { merge: true });
+    // Actualizar el documento en Firestore - USAR set SIN merge para reemplazar completamente
+    // y eliminar cualquier campo 'id' interno viejo que pueda existir
+    await entriesRef.doc(docId).set(entryData);
     
     // Actualizar array local: buscar por docId y reemplazar
     const existingIdx = allEntries.findIndex(e => e.id === docId);
