@@ -522,11 +522,29 @@ async function addEntry(e){
     saveBtn.textContent = 'Guardar';
     saveBtn.classList.remove('btn-warning');
     saveBtn.classList.add('btn-primary');
+    
+    // Mostrar mensaje de confirmación
+    alert('Registro actualizado exitosamente');
+    
+    // Volver a la vista de listado/historial con un pequeño delay para asegurar que el alert se cierre
+    setTimeout(() => {
+      const historyTab = document.querySelector('[data-bs-target="#history-tab"], #history-tab, a[href="#history-tab"]');
+      if(historyTab) {
+        historyTab.click();
+      } else {
+        // Fallback: intentar activar la pestaña directamente por ID
+        const historyPane = document.getElementById('history-tab');
+        if(historyPane) historyPane.classList.add('active');
+        const recordTab = document.querySelector('a.nav-link[href="#record"], button[data-section="record"]');
+        if(recordTab) recordTab.click();
+      }
+    }, 100);
+    
     return;
   }
 
+  // Crear entry SIN campo id - apiSaveEntry asignará el doc.id real
   const entry = {
-    id: uid(),
     date,
     type,
     category,
