@@ -72,7 +72,8 @@ async function apiLoadEntries(){
 
 async function apiSaveEntry(entry){
   try {
-    await entriesRef.add(entry);
+    const doc = await entriesRef.add(entry);
+    entry.id = doc.id; // Asignar el doc.id real de Firestore
     allEntries.unshift(entry);
     updateSummaryDisplay();
   } catch (e) {
@@ -94,6 +95,21 @@ async function apiDeleteEntry(id){
     console.warn('Error borrando en Firestore, usando localStorage', e.message || e);
     const entries = loadEntriesLocal();
     const updated = entries.filter(e => e.id !== id);
+    saveEntriesLocal(updated);
+    allEntries = updated;
+    updateSummaryDisplay();
+  }
+}
+
+async function apiUpdateEntry(entry){
+  try {
+    await entriesRef.doc(entry.id).set(entry, { merge: true });
+    allEntries = allEntries.map(e => e.id === entry.id ? entry : e);
+    updateSummaryDisplay();
+  } catch (e) {
+    console.warn('Error actualizando en Firestore, usando localStorage', e.message || e);
+    const entries = loadEntriesLocal();
+    const updated = entries.map(e => e.id === entry.id ? entry : e);
     saveEntriesLocal(updated);
     allEntries = updated;
     updateSummaryDisplay();
@@ -428,37 +444,28 @@ async function addEntry(e){
 
   // Si estamos editando, actualizar en lugar de crear
   if(window.editingEntryId){
-    const entry = allEntries.find(e => e.id === window.editingEntryId);
-    if(entry){
-      entry.date = date;
-      entry.type = type;
-      entry.category = category;
-      entry.amount = Math.abs(amount);
-      entry.description = description;
-      
-      try {
-        await entriesRef.doc(window.editingEntryId).update(entry);
-      } catch (e) {
-        console.warn('Error actualizando en Firestore', e.message || e);
-        const entries = loadEntriesLocal();
-        const idx = entries.findIndex(x => x.id === window.editingEntryId);
-        if(idx !== -1) entries[idx] = entry;
-        saveEntriesLocal(entries);
-        allEntries = entries;
-      }
-      
-      window.editingEntryId = null;
-      await refreshEntries();
-      document.getElementById('entryForm').reset();
-      document.getElementById('categoryCustom').style.display = 'none';
-      
-      // Restaurar botón guardar
-      const saveBtn = document.getElementById('saveBtn');
-      saveBtn.textContent = 'Guardar';
-      saveBtn.classList.remove('btn-warning');
-      saveBtn.classList.add('btn-primary');
-      return;
-    }
+    const entry = {
+      id: window.editingEntryId,
+      date: date,
+      type: type,
+      category: category,
+      amount: Math.abs(amount),
+      description: description
+    };
+    
+    await apiUpdateEntry(entry);
+    
+    window.editingEntryId = null;
+    await refreshEntries();
+    document.getElementById('entryForm').reset();
+    document.getElementById('categoryCustom').style.display = 'none';
+    
+    // Restaurar botón guardar
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.textContent = 'Guardar';
+    saveBtn.classList.remove('btn-warning');
+    saveBtn.classList.add('btn-primary');
+    return;
   }
 
   const entry = {
