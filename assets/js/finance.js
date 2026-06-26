@@ -78,18 +78,23 @@ async function apiSaveEntry(entry){
   try {
     console.log('apiSaveEntry: creando nuevo registro con datos:', entry);
     // Nuevo registro: crear documento y asignar su id real
-    const doc = await entriesRef.add(entry);
-    entry.id = doc.id;
-    console.log('apiSaveEntry: nuevo ID asignado:', entry.id);
-    allEntries.unshift(entry);
+    // Crear una copia para no modificar el objeto original
+    const entryCopy = { ...entry };
+    const doc = await entriesRef.add(entryCopy);
+    entryCopy.id = doc.id;
+    console.log('apiSaveEntry: nuevo ID asignado:', entryCopy.id);
+    allEntries.unshift(entryCopy);
     updateSummaryDisplay();
+    return entryCopy;
   } catch (e) {
     console.warn('Error guardando en Firestore, usando localStorage', e.message || e);
     const entries = loadEntriesLocal();
-    entries.unshift(entry);
+    const entryCopy = { ...entry };
+    entries.unshift(entryCopy);
     saveEntriesLocal(entries);
     allEntries = entries;
     updateSummaryDisplay();
+    return entryCopy;
   }
 }
 
@@ -526,15 +531,21 @@ async function deleteEntry(id){
 }
 
 async function duplicateEntry(id){
+  // Buscar la entrada por el ID recibido (que es el doc.id de Firestore)
   const entry = allEntries.find(e => e.id === id);
-  if(!entry) return;
+  if(!entry) {
+    console.error('No se encontró entrada con ID:', id);
+    return;
+  }
   
+  // Crear copia sin el campo id, apiSaveEntry asignará el nuevo doc.id
+  const { id: _, ...entryData } = entry;
   const newEntry = {
-    ...entry,
-    id: uid(),
+    ...entryData,
     date: new Date().toISOString().split('T')[0]
   };
   
+  console.log('Duplicando entrada:', entry.id, '-> nueva entrada:', newEntry);
   await apiSaveEntry(newEntry);
   await refreshEntries();
   alert('Registro duplicado exitosamente');
