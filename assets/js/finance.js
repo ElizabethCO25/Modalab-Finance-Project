@@ -109,27 +109,39 @@ async function apiDeleteEntry(id){
   }
 }
 
-async function apiUpdateEntry(entry){
+async function apiUpdateEntry(entry, docId){
   try {
-    console.log('apiUpdateEntry: actualizando doc con ID:', entry.id);
+    // Usar siempre el docId real de Firestore, no el entry.id interno
+    const idToUpdate = docId || entry.id;
+    console.log('apiUpdateEntry: actualizando doc con ID:', idToUpdate);
+    
+    // Crear una copia del entry sin el campo id para evitar inconsistencias
+    const { id, ...entryData } = entry;
+    
     // Usar set con merge para actualizar o crear si el doc no existe
-    await entriesRef.doc(entry.id).set(entry, { merge: true });
-    // Actualizar array local: reemplazar si existe, agregar si no
-    const existingIdx = allEntries.findIndex(e => e.id === entry.id);
+    await entriesRef.doc(idToUpdate).set(entryData, { merge: true });
+    
+    // Actualizar array local: buscar por docId y reemplazar
+    const existingIdx = allEntries.findIndex(e => e.id === idToUpdate);
+    const updatedEntry = { ...entryData, id: idToUpdate };
+    
     if(existingIdx >= 0){
-      allEntries[existingIdx] = entry;
+      allEntries[existingIdx] = updatedEntry;
     } else {
-      allEntries.unshift(entry);
+      allEntries.unshift(updatedEntry);
     }
     updateSummaryDisplay();
   } catch (e) {
     console.warn('Error actualizando en Firestore, usando localStorage', e.message || e);
     const entries = loadEntriesLocal();
-    const existingIdx = entries.findIndex(e => e.id === entry.id);
+    const idToUpdate = docId || entry.id;
+    const { id, ...entryData } = entry;
+    const updatedEntry = { ...entryData, id: idToUpdate };
+    const existingIdx = entries.findIndex(e => e.id === idToUpdate);
     if(existingIdx >= 0){
-      entries[existingIdx] = entry;
+      entries[existingIdx] = updatedEntry;
     } else {
-      entries.unshift(entry);
+      entries.unshift(updatedEntry);
     }
     saveEntriesLocal(entries);
     allEntries = entries;
@@ -467,7 +479,6 @@ async function addEntry(e){
   if(window.editingEntryId){
     console.log('Entrando en modo edición, ID:', window.editingEntryId);
     const entry = {
-      id: window.editingEntryId,
       date: date,
       type: type,
       category: category,
@@ -475,7 +486,7 @@ async function addEntry(e){
       description: description
     };
     
-    await apiUpdateEntry(entry);
+    await apiUpdateEntry(entry, window.editingEntryId);
     
     window.editingEntryId = null;
     await refreshEntries();
@@ -558,6 +569,8 @@ async function editEntry(id){
   if(mainTab) mainTab.click();
   
   // Guardar el ID para actualizar en lugar de crear nuevo
+  // IMPORTANTE: Usar el parámetro 'id' que es el doc.id real de Firestore,
+  // no entry.id que puede ser un uid() antiguo inconsistente
   window.editingEntryId = id;
   
   // Cambiar texto del botón guardar
@@ -566,7 +579,7 @@ async function editEntry(id){
   saveBtn.classList.remove('btn-primary');
   saveBtn.classList.add('btn-warning');
   
-  console.log('Editando entrada con ID:', id, 'Estado editingEntryId:', window.editingEntryId);
+  console.log('Editando entrada - ID recibido (doc.id):', id, '| entry.id interno:', entry.id, '| editingEntryId:', window.editingEntryId);
 }
 
 function renderEntries(entries){
