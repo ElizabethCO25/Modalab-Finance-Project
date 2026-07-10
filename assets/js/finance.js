@@ -831,81 +831,79 @@ function applyFilter(){
 }
 
 function exportXlsx() {
-  // Obtener las filas visibles de la tabla de historial (respeta los filtros aplicados)
-  const tableBody = document.querySelector('#entriesTable tbody');
-  if (!tableBody) {
-    return alert('Error: No se encontró la tabla de registros.');
-  }
-
-  const rows = tableBody.querySelectorAll('tr');
-  
-  // Verificar si hay datos visibles
-  if (rows.length === 0) {
-    return alert('No hay registros visibles para exportar. Aplica un filtro o agrega registros.');
-  }
-
-  // Verificar si la librería XLSX está cargada
-  if (typeof XLSX === 'undefined') {
-    return alert('Error: La librería de Excel no se ha cargado. Verifica tu conexión a internet.');
-  }
-
-  // Preparar datos leyendo directamente de la tabla HTML visible
-  const data = [['Fecha', 'Tipo', 'Categoría', 'Monto', 'Descripción']];
-
-  rows.forEach(row => {
-    const cells = row.querySelectorAll('td');
-    if (cells.length >= 6) { // Asegurarse de que haya suficientes columnas
-      // Columna 0: Checkbox (ignorar)
-      // Columna 1: Fecha
-      // Columna 2: Tipo
-      // Columna 3: Categoría
-      // Columna 4: Monto
-      // Columna 5: Descripción
-      // Columna 6: Acciones (ignorar)
-      
-      const fecha = cells[1].textContent.trim();
-      const tipo = cells[2].textContent.trim();
-      const categoria = cells[3].textContent.trim();
-      // Limpiar el monto (quitar 'S/' y espacios)
-      const montoTexto = cells[4].textContent.replace('S/', '').replace(/\./g, '').trim();
-      const montoLimpio = parseFloat(montoTexto);
-      const descripcion = cells[5].textContent.trim();
-
-      data.push([
-        fecha,
-        tipo,
-        categoria,
-        isNaN(montoLimpio) ? 0 : montoLimpio,
-        descripcion
-      ]);
+    // 1. Obtener los datos directamente de la tabla visible (respeta filtros)
+    const tableBody = document.querySelector('#entriesTable tbody');
+    if (!tableBody) {
+        return alert('Error: No se encontró la tabla de registros.');
     }
-  });
 
-  // Si solo tenemos los encabezados (no se extrajeron filas válidas)
-  if (data.length === 1) {
-    return alert('No se pudieron extraer datos válidos de la tabla.');
-  }
+    const rows = tableBody.querySelectorAll('tr');
 
-  // Crear libro y hoja de cálculo
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(data);
+    if (rows.length === 0) {
+        return alert('No hay registros visibles para exportar. Aplica un filtro o agrega datos.');
+    }
 
-  // Ajustar ancho de columnas para mejor visualización
-  const colWidths = [
-    { wch: 12 }, // Fecha
-    { wch: 10 }, // Tipo
-    { wch: 15 }, // Categoría
-    { wch: 12 }, // Monto
-    { wch: 30 }  // Descripción
-  ];
-  ws['!cols'] = colWidths;
+    // Verificar librería
+    if (typeof XLSX === 'undefined') {
+        return alert('Error: La librería de Excel no se ha cargado. Recarga la página.');
+    }
 
-  XLSX.utils.book_append_sheet(wb, ws, 'Finanzas');
-  
-  // Generar nombre de archivo con fecha actual
-  const dateStr = new Date().toISOString().slice(0,10);
-  XLSX.writeFile(wb, `finanzas_export_${dateStr}.xlsx`);
+    // Encabezados
+    const data = [['Fecha', 'Tipo', 'Categoría', 'Monto', 'Descripción']];
+
+    // Recorrer filas visibles
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        // Asegurarse de que la fila tenga columnas suficientes (ignorar filas vacías o de encabezado si las hubiera)
+        if (cells.length < 6) return;
+
+        const fecha = cells[1].innerText.trim();
+        // Normalizar tipo a minúsculas para comparar
+        const tipoRaw = cells[2].innerText.trim().toLowerCase(); 
+        const categoria = cells[3].innerText.trim();
+        
+        // Limpiar el monto de símbolos de moneda y separadores
+        let montoTexto = cells[4].innerText.replace(/S\/|S\.|\s|,/g, '');
+        let monto = parseFloat(montoTexto);
+
+        if (isNaN(monto)) {
+            monto = 0;
+        }
+
+        // CORRECCIÓN CLAVE: Si es egreso, convertir a positivo para Excel
+        if (tipoRaw === 'egreso') {
+            monto = Math.abs(monto);
+        }
+
+        const descripcion = cells[5].innerText.trim();
+
+        data.push([
+            fecha,
+            tipoRaw === 'ingreso' ? 'Ingreso' : 'Egreso', // Capitalizar primera letra
+            categoria,
+            monto, 
+            descripcion
+        ]);
+    });
+
+    // Crear libro y hoja
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(data);
+
+    // Ajustar anchos
+    const colWidths = [
+        { wch: 12 }, // Fecha
+        { wch: 10 }, // Tipo
+        { wch: 15 }, // Categoría
+        { wch: 15 }, // Monto
+        { wch: 30 }  // Descripción
+    ];
+    ws['!cols'] = colWidths;
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Registros');
+  XLSX.writeFile(wb, `financeML_export_${dateStr}.xlsx`);
 }
+
 
 function printReport(){
   // Imprimir solo la tabla de registros, sin filtros ni cabeceras
