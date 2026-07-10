@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="es">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -10,140 +11,371 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <style id="customStyles"></style>
+  <!-- Línea para importar SheetJS -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
+
 <body>
 
-<!-- Login Screen -->
-<div class="container py-5" id="loginScreen">
-  <div class="row justify-content-center">
-    <div class="col-md-5 col-lg-4">
-      <div class="card shadow">
-        <div class="card-body p-4">
-          <div class="text-center mb-4">
-            <img id="loginLogo" src="" alt="Logo" style="height:60px;display:none;" class="mb-3">
-            <h2 id="loginTitle">Iniciar Sesión</h2>
-            <p class="text-muted">Sistema de Registro Financiero</p>
+  <!-- Login Screen -->
+  <div class="container py-5" id="loginScreen">
+    <div class="row justify-content-center">
+      <div class="col-md-5 col-lg-4">
+        <div class="card shadow">
+          <div class="card-body p-4">
+            <div class="text-center mb-4">
+              <img id="loginLogo" src="" alt="Logo" style="height:60px;display:none;" class="mb-3">
+              <h2 id="loginTitle">Iniciar Sesión</h2>
+              <p class="text-muted">Sistema de Registro Financiero</p>
+            </div>
+            <form id="loginForm">
+              <div class="mb-3">
+                <label class="form-label">Usuario</label>
+                <input type="text" id="loginUser" class="form-control" required autocomplete="username">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Contraseña</label>
+                <input type="password" id="loginPass" class="form-control" required autocomplete="current-password">
+              </div>
+              <div class="d-grid">
+                <button type="submit" class="btn btn-primary btn-lg">Ingresar</button>
+              </div>
+              <div id="loginError" class="alert alert-danger mt-3 d-none"></div>
+            </form>
           </div>
-          <form id="loginForm">
-            <div class="mb-3">
-              <label class="form-label">Usuario</label>
-              <input type="text" id="loginUser" class="form-control" required autocomplete="username">
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Contraseña</label>
-              <input type="password" id="loginPass" class="form-control" required autocomplete="current-password">
-            </div>
-            <div class="d-grid">
-              <button type="submit" class="btn btn-primary btn-lg">Ingresar</button>
-            </div>
-            <div id="loginError" class="alert alert-danger mt-3 d-none"></div>
-          </form>
         </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Main App Container -->
-<div class="container py-4" id="appContainer" style="display:none;">
-  <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4 rounded">
-    <div class="container-fluid">
-      <a class="navbar-brand d-flex align-items-center gap-2" href="#">
-        <img id="navLogo" src="" alt="Logo" style="height:30px;display:none;">
-        <span id="appTitle">Registro de Ingresos y Egresos</span>
-      </a>
-      <div class="d-flex align-items-center gap-3">
-        <span class="text-white small" id="userInfo"></span>
-        <button class="btn btn-outline-light btn-sm" id="logoutBtn">Cerrar sesión</button>
+  <!-- Main App Container -->
+  <div class="container py-4" id="appContainer" style="display:none;">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4 rounded">
+      <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+          <img id="navLogo" src="" alt="Logo" style="height:30px;display:none;">
+          <span id="appTitle">Registro de Ingresos y Egresos</span>
+        </a>
+        <div class="d-flex align-items-center gap-3">
+          <span class="text-white small" id="userInfo"></span>
+          <button class="btn btn-outline-light btn-sm" id="logoutBtn">Cerrar sesión</button>
+        </div>
       </div>
+    </nav>
+
+    <div class="device-banner alert alert-primary d-none" id="deviceBanner">
+      Interfaz adaptada para iPhone y iPad: vista compacta, botones grandes y resumen rápido.
     </div>
-  </nav>
 
-  <div class="device-banner alert alert-primary d-none" id="deviceBanner">
-    Interfaz adaptada para iPhone y iPad: vista compacta, botones grandes y resumen rápido.
-  </div>
-  
-  <div class="mb-4">
-    <ul class="nav nav-tabs" id="financeTab" role="tablist">
-      <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="main-tab" data-bs-toggle="tab" data-bs-target="#mainTab" type="button" role="tab" aria-controls="mainTab" aria-selected="true">Registro</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#historyTab" type="button" role="tab" aria-controls="historyTab" aria-selected="false">Filtrar y ver historial</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="admin-tab" data-bs-toggle="tab" data-bs-target="#adminTab" type="button" role="tab" aria-controls="adminTab" aria-selected="false">Admin</button>
-      </li>
-    </ul>
-  </div>
+    <div class="mb-4">
+      <ul class="nav nav-tabs" id="financeTab" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="main-tab" data-bs-toggle="tab" data-bs-target="#mainTab" type="button"
+            role="tab" aria-controls="mainTab" aria-selected="true">Registro</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#historyTab" type="button"
+            role="tab" aria-controls="historyTab" aria-selected="false">Filtrar y ver historial</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="admin-tab" data-bs-toggle="tab" data-bs-target="#adminTab" type="button"
+            role="tab" aria-controls="adminTab" aria-selected="false">Admin</button>
+        </li>
+      </ul>
+    </div>
 
-  <div class="tab-content" id="financeTabContent">
-    <div class="tab-pane fade show active" id="mainTab" role="tabpanel" aria-labelledby="main-tab">
-      <div class="row">
-        <div class="col-lg-5">
-          <div class="card mb-3">
-            <div class="card-body">
-              <h5 class="card-title">Nuevo registro</h5>
-              <form id="entryForm">
-                <div class="mb-2">
-                  <label class="form-label">Fecha</label>
-                  <input type="date" id="date" class="form-control" required>
+    <div class="tab-content" id="financeTabContent">
+      <div class="tab-pane fade show active" id="mainTab" role="tabpanel" aria-labelledby="main-tab">
+        <div class="row">
+          <div class="col-lg-5">
+            <div class="card mb-3">
+              <div class="card-body">
+                <h5 class="card-title">Nuevo registro</h5>
+                <form id="entryForm">
+                  <div class="mb-2">
+                    <label class="form-label">Fecha</label>
+                    <input type="date" id="date" class="form-control" required>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Tipo</label>
+                    <select id="type" class="form-select">
+                      <option value="ingreso">Ingreso</option>
+                      <option value="egreso">Egreso</option>
+                    </select>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Categoría</label>
+                    <div class="d-flex gap-2">
+                      <select id="category" class="form-select">
+                        <option value="Sueldo">Sueldo</option>
+                        <option value="Ventas">Ventas</option>
+                        <option value="Comida">Comida</option>
+                        <option value="Transporte">Transporte</option>
+                        <option value="Servicios">Servicios</option>
+                        <option value="Otra">Otra...</option>
+                      </select>
+                      <input type="text" id="categoryCustom" class="form-control"
+                        placeholder="Si selecciona 'Otra', especifique" style="display:none;">
+                    </div>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Monto</label>
+                    <input type="number" step="0.01" id="amount" class="form-control" required>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Descripción</label>
+                    <input type="text" id="description" class="form-control" placeholder="Opcional">
+                  </div>
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-primary" id="saveBtn">Guardar</button>
+                    <button type="button" class="btn btn-secondary" id="clearBtn">Limpiar</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-7">
+            <div class="card mb-3">
+              <div class="card-body">
+                <h5 class="card-title">Resumen mensual</h5>
+                <div id="summary" class="mb-3"></div>
+                <div class="d-flex chart-panel flex-column flex-lg-row align-items-stretch">
+                  <div class="chart-area flex-fill">
+                    <canvas id="monthChart" height="200"></canvas>
+                  </div>
+                  <div class="chart-sidebar mt-3 mt-lg-0 ms-lg-3 p-3">
+                    <div class="mb-3">
+                      <strong>Navegador de meses</strong>
+                    </div>
+                    <button class="btn btn-outline-secondary btn-sm w-100 mb-2" id="prevMonthBtn">← Mes
+                      anterior</button>
+                    <select id="chartCenterMonth" class="form-select mb-2"></select>
+                    <button class="btn btn-outline-secondary btn-sm w-100 mb-2" id="nextMonthBtn">Mes siguiente
+                      →</button>
+                    <div class="text-muted small">Muestra el mes central, su anterior y su siguiente para más espacio de
+                      visualización.</div>
+                  </div>
                 </div>
-                <div class="mb-2">
-                  <label class="form-label">Tipo</label>
-                  <select id="type" class="form-select">
-                    <option value="ingreso">Ingreso</option>
-                    <option value="egreso">Egreso</option>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="adminTab" role="tabpanel" aria-labelledby="admin-tab">
+        <div class="row">
+          <!-- Panel visible solo para admin -->
+          <div class="col-lg-6 admin-only" style="display:none;">
+            <div class="card mb-3">
+              <div class="card-body admin-panel">
+                <h5 class="card-title">Gestión de Usuarios</h5>
+                <p>Crea y gestiona usuarios del sistema.</p>
+
+                <div class="mb-3">
+                  <label class="form-label">Nuevo Usuario</label>
+                  <input type="text" id="newUsername" class="form-control mb-2" placeholder="Nombre de usuario" />
+                  <input type="password" id="newUserpass" class="form-control mb-2" placeholder="Contraseña" />
+                  <select id="newUserRole" class="form-select mb-2">
+                    <option value="user">Usuario Normal</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                  <button class="btn btn-primary" id="createUserBtn">Crear Usuario</button>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Usuarios Existentes</label>
+                  <ul class="list-group" id="userList"></ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="card mb-3">
+              <div class="card-body admin-panel">
+                <h5 class="card-title">Personalización UI</h5>
+                <p>Personaliza la apariencia de la aplicación.</p>
+
+                <div class="mb-3">
+                  <label class="form-label">Título de la Aplicación</label>
+                  <input type="text" id="uiAppTitle" class="form-control" placeholder="Ej: Mi Finanzas" />
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">URL del Logo</label>
+                  <input type="text" id="uiLogoUrl" class="form-control" placeholder="https://ejemplo.com/logo.png" />
+                  <small class="form-text text-muted">Pega la URL de una imagen para usar como logo</small>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Color Principal</label>
+                  <input type="color" id="uiPrimaryColor" class="form-control form-control-color w-100"
+                    value="#0d6efd" />
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Color de Fondo</label>
+                  <input type="color" id="uiBgColor" class="form-control form-control-color w-100" value="#f8f9fa" />
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">URL de Fondo de Pantalla</label>
+                  <input type="text" id="uiBgImageUrl" class="form-control"
+                    placeholder="https://ejemplo.com/fondo.jpg" />
+                  <small class="form-text text-muted">Imagen de fondo para toda la aplicación</small>
+                </div>
+
+                <button class="btn btn-success" id="saveUiSettings">Guardar Personalización</button>
+                <button class="btn btn-secondary" id="resetUiSettings">Restaurar Valores</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Panel común para todos los usuarios -->
+          <div class="col-lg-6">
+            <div class="card mb-3">
+              <div class="card-body admin-panel">
+                <h5 class="card-title">Admin - Categorías</h5>
+                <p>Gestiona las categorías disponibles en el formulario y los filtros. Estos cambios se guardan en
+                  Firebase para todos los usuarios.</p>
+
+                <div class="mb-3">
+                  <label class="form-label">Tipo de categoría</label>
+                  <select id="adminCategoryType" class="form-select">
+                    <option value="ingresos">Ingresos</option>
+                    <option value="egresos">Egresos</option>
                   </select>
                 </div>
-                <div class="mb-2">
-                  <label class="form-label">Categoría</label>
-                  <div class="d-flex gap-2">
-                    <select id="category" class="form-select">
+
+                <div class="mb-3">
+                  <label class="form-label">Nueva categoría</label>
+                  <div class="d-flex gap-2 flex-wrap">
+                    <input type="text" id="newCategoryInput" class="form-control"
+                      placeholder="Introduzca la categoría" />
+                    <button class="btn btn-primary" id="addCategoryBtn">Agregar</button>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Categorías actuales</label>
+                  <ul class="list-group" id="categoryList"></ul>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Configuraciones</label>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="enableFutureMonths" />
+                    <label class="form-check-label" for="enableFutureMonths">Mostrar meses futuros en el selector de
+                      gráfico</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="historyTab" role="tabpanel" aria-labelledby="history-tab">
+        <div class="row">
+          <div class="col-12">
+            <div class="card mb-3">
+              <div class="card-body">
+                <h5 class="card-title">Filtrar y exportar</h5>
+                <div class="mb-2 d-flex gap-2 align-items-center flex-wrap">
+                  <div>
+                    <label class="form-label small mb-1">Filtrar por mes</label>
+                    <input type="month" id="filterMonth" class="form-control">
+                  </div>
+                  <div>
+                    <label class="form-label small mb-1">Desde</label>
+                    <input type="date" id="filterStart" class="form-control">
+                  </div>
+                  <div>
+                    <label class="form-label small mb-1">Hasta</label>
+                    <input type="date" id="filterEnd" class="form-control">
+                  </div>
+                  <div>
+                    <label class="form-label small mb-1">Filtrar por categoría</label>
+                    <select id="filterCategory" class="form-select">
+                      <option value="">Filtrar por categoría</option>
                       <option value="Sueldo">Sueldo</option>
                       <option value="Ventas">Ventas</option>
                       <option value="Comida">Comida</option>
                       <option value="Transporte">Transporte</option>
                       <option value="Servicios">Servicios</option>
-                      <option value="Otra">Otra...</option>
+                      <option value="Otra">Otra</option>
                     </select>
-                    <input type="text" id="categoryCustom" class="form-control" placeholder="Si selecciona 'Otra', especifique" style="display:none;">
                   </div>
                 </div>
-                <div class="mb-2">
-                  <label class="form-label">Monto</label>
-                  <input type="number" step="0.01" id="amount" class="form-control" required>
+                <div class="mb-2 d-flex gap-2 flex-wrap">
+                  <button class="btn btn-outline-primary" id="applyFilter">Aplicar</button>
+                  <button class="btn btn-outline-secondary" id="clearFilters">Limpiar filtros</button>
+                  <button class="btn btn-outline-success" id="exportXlsx">Exportar Excel</button>
+                  <button class="btn btn-outline-dark" id="printReport">Imprimir</button>
                 </div>
-                <div class="mb-2">
-                  <label class="form-label">Descripción</label>
-                  <input type="text" id="description" class="form-control" placeholder="Opcional">
-                </div>
-                <div class="d-flex gap-2">
-                  <button class="btn btn-primary" id="saveBtn">Guardar</button>
-                  <button type="button" class="btn btn-secondary" id="clearBtn">Limpiar</button>
-                </div>
-              </form>
+              </div>
             </div>
-          </div>
-        </div>
 
-        <div class="col-lg-7">
-          <div class="card mb-3">
-            <div class="card-body">
-              <h5 class="card-title">Resumen mensual</h5>
-              <div id="summary" class="mb-3"></div>
-              <div class="d-flex chart-panel flex-column flex-lg-row align-items-stretch">
-                <div class="chart-area flex-fill">
-                  <canvas id="monthChart" height="200"></canvas>
-                </div>
-                <div class="chart-sidebar mt-3 mt-lg-0 ms-lg-3 p-3">
-                  <div class="mb-3">
-                    <strong>Navegador de meses</strong>
+            <div class="card">
+              <div class="card-body">
+                <h5 class="card-title">Historial de registros</h5>
+
+                <!-- Barra de acciones globales (estilo Gmail) -->
+                <div class="mb-3 p-2 bg-light rounded action-bar" id="actionBar" style="display:none;">
+                  <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <span class="text-muted small"><span id="selectedCount">0</span> seleccionado(s)</span>
+                    <button class="btn btn-sm btn-outline-primary" id="bulkEditBtn"
+                      title="Editar registros seleccionados">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        viewBox="0 0 16 16">
+                        <path
+                          d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z" />
+                      </svg>
+                      Editar
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" id="bulkDeleteBtn"
+                      title="Eliminar registros seleccionados">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        viewBox="0 0 16 16">
+                        <path
+                          d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6Z" />
+                        <path
+                          d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1ZM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118ZM2.5 3h11V2h-11v1Z" />
+                      </svg>
+                      Eliminar
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" id="bulkDuplicateBtn"
+                      title="Duplicar registros seleccionados">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        viewBox="0 0 16 16">
+                        <path fill-rule="evenodd"
+                          d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6ZM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2Z" />
+                      </svg>
+                      Duplicar
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" id="selectAllBtn" title="Seleccionar todos">
+                      Seleccionar todos
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" id="clearSelectionBtn" title="Limpiar selección">
+                      Limpiar
+                    </button>
                   </div>
-                  <button class="btn btn-outline-secondary btn-sm w-100 mb-2" id="prevMonthBtn">← Mes anterior</button>
-                  <select id="chartCenterMonth" class="form-select mb-2"></select>
-                  <button class="btn btn-outline-secondary btn-sm w-100 mb-2" id="nextMonthBtn">Mes siguiente →</button>
-                  <div class="text-muted small">Muestra el mes central, su anterior y su siguiente para más espacio de visualización.</div>
+                </div>
+
+                <div class="table-responsive">
+                  <table class="table table-sm" id="entriesTable">
+                    <thead>
+                      <tr>
+                        <th><input type="checkbox" id="selectAllCheckbox" title="Seleccionar todos"></th>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Categoría</th>
+                        <th>Monto</th>
+                        <th>Descripción</th>
+                        <th class="no-print">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -151,210 +383,13 @@
         </div>
       </div>
     </div>
-
-    <div class="tab-pane fade" id="adminTab" role="tabpanel" aria-labelledby="admin-tab">
-      <div class="row">
-        <!-- Panel visible solo para admin -->
-        <div class="col-lg-6 admin-only" style="display:none;">
-          <div class="card mb-3">
-            <div class="card-body admin-panel">
-              <h5 class="card-title">Gestión de Usuarios</h5>
-              <p>Crea y gestiona usuarios del sistema.</p>
-              
-              <div class="mb-3">
-                <label class="form-label">Nuevo Usuario</label>
-                <input type="text" id="newUsername" class="form-control mb-2" placeholder="Nombre de usuario" />
-                <input type="password" id="newUserpass" class="form-control mb-2" placeholder="Contraseña" />
-                <select id="newUserRole" class="form-select mb-2">
-                  <option value="user">Usuario Normal</option>
-                  <option value="admin">Administrador</option>
-                </select>
-                <button class="btn btn-primary" id="createUserBtn">Crear Usuario</button>
-              </div>
-              
-              <div class="mb-3">
-                <label class="form-label">Usuarios Existentes</label>
-                <ul class="list-group" id="userList"></ul>
-              </div>
-            </div>
-          </div>
-          
-          <div class="card mb-3">
-            <div class="card-body admin-panel">
-              <h5 class="card-title">Personalización UI</h5>
-              <p>Personaliza la apariencia de la aplicación.</p>
-              
-              <div class="mb-3">
-                <label class="form-label">Título de la Aplicación</label>
-                <input type="text" id="uiAppTitle" class="form-control" placeholder="Ej: Mi Finanzas" />
-              </div>
-              
-              <div class="mb-3">
-                <label class="form-label">URL del Logo</label>
-                <input type="text" id="uiLogoUrl" class="form-control" placeholder="https://ejemplo.com/logo.png" />
-                <small class="form-text text-muted">Pega la URL de una imagen para usar como logo</small>
-              </div>
-              
-              <div class="mb-3">
-                <label class="form-label">Color Principal</label>
-                <input type="color" id="uiPrimaryColor" class="form-control form-control-color w-100" value="#0d6efd" />
-              </div>
-              
-              <div class="mb-3">
-                <label class="form-label">Color de Fondo</label>
-                <input type="color" id="uiBgColor" class="form-control form-control-color w-100" value="#f8f9fa" />
-              </div>
-              
-              <div class="mb-3">
-                <label class="form-label">URL de Fondo de Pantalla</label>
-                <input type="text" id="uiBgImageUrl" class="form-control" placeholder="https://ejemplo.com/fondo.jpg" />
-                <small class="form-text text-muted">Imagen de fondo para toda la aplicación</small>
-              </div>
-              
-              <button class="btn btn-success" id="saveUiSettings">Guardar Personalización</button>
-              <button class="btn btn-secondary" id="resetUiSettings">Restaurar Valores</button>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Panel común para todos los usuarios -->
-        <div class="col-lg-6">
-          <div class="card mb-3">
-            <div class="card-body admin-panel">
-              <h5 class="card-title">Admin - Categorías</h5>
-              <p>Gestiona las categorías disponibles en el formulario y los filtros. Estos cambios se guardan en Firebase para todos los usuarios.</p>
-              
-              <div class="mb-3">
-                <label class="form-label">Tipo de categoría</label>
-                <select id="adminCategoryType" class="form-select">
-                  <option value="ingresos">Ingresos</option>
-                  <option value="egresos">Egresos</option>
-                </select>
-              </div>
-              
-              <div class="mb-3">
-                <label class="form-label">Nueva categoría</label>
-                <div class="d-flex gap-2 flex-wrap">
-                  <input type="text" id="newCategoryInput" class="form-control" placeholder="Introduzca la categoría" />
-                  <button class="btn btn-primary" id="addCategoryBtn">Agregar</button>
-                </div>
-              </div>
-              
-              <div class="mb-3">
-                <label class="form-label">Categorías actuales</label>
-                <ul class="list-group" id="categoryList"></ul>
-              </div>
-              
-              <div class="mb-3">
-                <label class="form-label">Configuraciones</label>
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="enableFutureMonths" />
-                  <label class="form-check-label" for="enableFutureMonths">Mostrar meses futuros en el selector de gráfico</label>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="tab-pane fade" id="historyTab" role="tabpanel" aria-labelledby="history-tab">
-      <div class="row">
-        <div class="col-12">
-          <div class="card mb-3">
-            <div class="card-body">
-              <h5 class="card-title">Filtrar y exportar</h5>
-              <div class="mb-2 d-flex gap-2 align-items-center flex-wrap">
-                <div>
-                  <label class="form-label small mb-1">Filtrar por mes</label>
-                  <input type="month" id="filterMonth" class="form-control">
-                </div>
-                <div>
-                  <label class="form-label small mb-1">Desde</label>
-                  <input type="date" id="filterStart" class="form-control">
-                </div>
-                <div>
-                  <label class="form-label small mb-1">Hasta</label>
-                  <input type="date" id="filterEnd" class="form-control">
-                </div>
-                <div>
-                  <label class="form-label small mb-1">Filtrar por categoría</label>
-                  <select id="filterCategory" class="form-select">
-                    <option value="">Filtrar por categoría</option>
-                    <option value="Sueldo">Sueldo</option>
-                    <option value="Ventas">Ventas</option>
-                    <option value="Comida">Comida</option>
-                    <option value="Transporte">Transporte</option>
-                    <option value="Servicios">Servicios</option>
-                    <option value="Otra">Otra</option>
-                  </select>
-                </div>
-              </div>
-              <div class="mb-2 d-flex gap-2 flex-wrap">
-                <button class="btn btn-outline-primary" id="applyFilter">Aplicar</button>
-                <button class="btn btn-outline-secondary" id="clearFilters">Limpiar filtros</button>
-                <button class="btn btn-outline-success" id="exportXlsx">Exportar Excel</button>
-                <button class="btn btn-outline-dark" id="printReport">Imprimir</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-body">
-              <h5 class="card-title">Historial de registros</h5>
-              
-              <!-- Barra de acciones globales (estilo Gmail) -->
-              <div class="mb-3 p-2 bg-light rounded action-bar" id="actionBar" style="display:none;">
-                <div class="d-flex gap-2 align-items-center flex-wrap">
-                  <span class="text-muted small"><span id="selectedCount">0</span> seleccionado(s)</span>
-                  <button class="btn btn-sm btn-outline-primary" id="bulkEditBtn" title="Editar registros seleccionados">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
-                    </svg>
-                    Editar
-                  </button>
-                  <button class="btn btn-sm btn-outline-danger" id="bulkDeleteBtn" title="Eliminar registros seleccionados">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6Z"/>
-                      <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1ZM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118ZM2.5 3h11V2h-11v1Z"/>
-                    </svg>
-                    Eliminar
-                  </button>
-                  <button class="btn btn-sm btn-outline-success" id="bulkDuplicateBtn" title="Duplicar registros seleccionados">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                      <path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6ZM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2Z"/>
-                    </svg>
-                    Duplicar
-                  </button>
-                  <button class="btn btn-sm btn-outline-secondary" id="selectAllBtn" title="Seleccionar todos">
-                    Seleccionar todos
-                  </button>
-                  <button class="btn btn-sm btn-outline-secondary" id="clearSelectionBtn" title="Limpiar selección">
-                    Limpiar
-                  </button>
-                </div>
-              </div>
-              
-              <div class="table-responsive">
-                <table class="table table-sm" id="entriesTable">
-                  <thead>
-                    <tr><th><input type="checkbox" id="selectAllCheckbox" title="Seleccionar todos"></th><th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Monto</th><th>Descripción</th><th class="no-print">Acciones</th></tr>
-                  </thead>
-                  <tbody></tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <footer class="mt-4 text-muted small">ModaLab Finance © 2026 Modalab S.A.C. Todos los derechos reservados.</footer>
   </div>
-  <footer class="mt-4 text-muted small">ModaLab Finance © 2026 Modalab S.A.C. Todos los derechos reservados.</footer>
-</div>
 
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
-<script src="assets/js/firebase-config.js"></script>
-<script src="assets/js/finance.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  <script src="assets/js/firebase-config.js"></script>
+  <script src="assets/js/finance.js"></script>
 </body>
+
 </html>
