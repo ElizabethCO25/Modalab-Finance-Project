@@ -817,14 +817,15 @@ function exportXlsx(){
   const wb = XLSX.utils.book_new();
 
   // Prepare data for worksheet - usar los datos crudos del array
+  // Asegurar orden correcto: Fecha, Tipo, Categoría, Monto, Descripción
   const data = [['Fecha', 'Tipo', 'Categoría', 'Monto', 'Descripción']];
   allEntries.forEach(entry => {
     data.push([
-      entry.date || '',
-      entry.type || '',
-      entry.category || '',
-      Number(entry.amount) || 0,
-      entry.description || ''
+      entry.date !== undefined ? entry.date : '',
+      entry.type !== undefined ? entry.type : '',
+      entry.category !== undefined ? entry.category : '',
+      entry.amount !== undefined ? Number(entry.amount) : 0,
+      entry.description !== undefined ? entry.description : ''
     ]);
   });
 
