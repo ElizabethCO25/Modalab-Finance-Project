@@ -1,57 +1,94 @@
+# Examples
+
+## Example 1:
+Input:
+```
+### Added files:
+['src/main.py', 'README.md', 'config.json']
+
+### Deleted files:
+['old/unused.py']
+
+### Modified files:
+['utils.py']
+
+### Current .gitignore Content:
+(empty)
+```
+
+Expected Output:
+```
+(empty — output nothing)
+```
+
+## Example 2:
+Input:
+```
+### Added files:
+['__pycache__/main.cpython-310.pyc', 'dist/app.js', '.env.local', '.vscode/settings.json']
+
+### Deleted files:
+[]
+
+### Modified files:
+[]
+
+### Current .gitignore Content:
+*.log
+```
+
+Expected Output:
+```
 # Compiled and build artifacts
 *.pyc
 __pycache__/
-*.o
-*.obj
 dist/
 build/
-target/
+*.o
+*.obj
 
 # Dependencies
-node_modules/
-venv/
 .venv/
-.env
-.env.local
-.env.*
+venv/
+node_modules/
 
 # Logs and temp files
 *.log
 *.tmp
 *.swp
 
+# Environment
+.env
+.env.local
+.env.*
+
 # Editors
 .vscode/
 .idea/
 
-# System files
-.DS_Store
-Thumbs.db
+# Original rules preserved
+*.log
+```
 
-# Coverage
-coverage/
-htmlcov/
-.coverage
+---
 
-# Python specific
-*.pyc
-__pycache__/
-.mypy_cache/
-.pytest_cache/
+Based on your input:
+```
+### Added files:
+[]
 
-# Node specific
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+### Deleted files:
+[]
 
-# Build outputs
-dist/
-build/
-*.min.js
-*.min.css
+### Modified files:
+['assets/js/finance.js', 'index.html']
 
-# Environment variables
-.env
-.env.local
-.env.*
+### Current .gitignore Content:
+(empty)
+```
+
+Since only source code files (.js and .html) were modified and there are no build artifacts, dependencies, or temporary files in the changes, the optimized .gitignore is:
+
+```
+(empty — output nothing)
+```

@@ -366,18 +366,13 @@ function populateCategorySelects(type = 'ingreso'){
   const categories = userSettings.categories[normalizedType] || [];
   
   categorySelect.innerHTML = '';
-  filterCategory.innerHTML = '<option value="">Filtrar por categoría</option>';
-  
+  // Solo llenar el select del formulario, no el de filtro
   categories.forEach(cat => {
     if(cat !== 'Otros'){
       const option = document.createElement('option');
       option.value = cat;
       option.textContent = cat;
       categorySelect.appendChild(option);
-      const optionFilter = document.createElement('option');
-      optionFilter.value = cat;
-      optionFilter.textContent = cat;
-      filterCategory.appendChild(optionFilter);
     }
   });
   
@@ -385,6 +380,26 @@ function populateCategorySelects(type = 'ingreso'){
   optionOther.value = 'Otra';
   optionOther.textContent = 'Otra...';
   categorySelect.appendChild(optionOther);
+}
+
+// Nueva función para actualizar el filtro de categorías según el tipo seleccionado
+function updateFilterCategoriesByType(type){
+  const filterType = document.getElementById('filterType');
+  const filterCategory = document.getElementById('filterCategory');
+  const selectedType = type || filterType.value;
+  const normalizedType = getNormalizedType(selectedType);
+  const categories = userSettings.categories[normalizedType] || [];
+  
+  filterCategory.innerHTML = '<option value="">Filtrar por categoría</option>';
+  
+  categories.forEach(cat => {
+    if(cat !== 'Otros'){
+      const optionFilter = document.createElement('option');
+      optionFilter.value = cat;
+      optionFilter.textContent = cat;
+      filterCategory.appendChild(optionFilter);
+    }
+  });
 }
 
 function renderCategoryList(){
@@ -772,7 +787,10 @@ function clearFilters(){
   document.getElementById('filterMonth').value = '';
   document.getElementById('filterStart').value = '';
   document.getElementById('filterEnd').value = '';
+  document.getElementById('filterType').value = '';
   document.getElementById('filterCategory').value = '';
+  // Restaurar categorías a ingresos por defecto
+  updateFilterCategoriesByType('ingreso');
   // Recargar todos los registros
   const rows = window.latestEntries || [];
   renderEntries(rows);
@@ -784,6 +802,7 @@ function applyFilter(){
   const filterMonth = document.getElementById('filterMonth').value;
   const start = document.getElementById('filterStart').value;
   const end = document.getElementById('filterEnd').value;
+  const filterType = document.getElementById('filterType').value;
   const category = document.getElementById('filterCategory').value;
   let rows = window.latestEntries || [];
 
@@ -796,6 +815,9 @@ function applyFilter(){
   }
   if (end) {
     rows = rows.filter(e => safeDateCompare(e.date, end) <= 0);
+  }
+  if (filterType) {
+    rows = rows.filter(e => e.type === filterType);
   }
   if (category) {
     rows = rows.filter(e => e.category === category);
@@ -1076,12 +1098,18 @@ async function init(){
   });
   document.getElementById('applyFilter').addEventListener('click', applyFilter);
   document.getElementById('clearFilters').addEventListener('click', clearFilters);
+  // Evento para actualizar categorías cuando cambia el tipo en el filtro
+  document.getElementById('filterType').addEventListener('change', function() {
+    updateFilterCategoriesByType();
+  });
   document.getElementById('exportXlsx').addEventListener('click', exportXlsx);
   document.getElementById('printReport').addEventListener('click', printReport);
   attachAdminEvents();
   attachUIManagementEvents();
   await loadSettings();
   populateCategorySelects('ingreso');
+  // Inicializar el filtro de categorías con las categorías de ingresos por defecto
+  updateFilterCategoriesByType('ingreso');
   renderAdminOptions();
   await refreshEntries();
 }
