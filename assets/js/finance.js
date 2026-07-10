@@ -850,7 +850,7 @@ function exportXlsx() {
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(data);
 
-  // Ajustar ancho de columnas para mejor visualización
+  // Ajustar ancho de columnas para mejor visualización -
   const colWidths = [
     { wch: 12 }, // Fecha
     { wch: 10 }, // Tipo
