@@ -809,25 +809,25 @@ function applyFilter(){
 }
 
 function exportXlsx(){
-  const rows = document.querySelectorAll('#entriesTable tbody tr');
-  if (rows.length === 0) return alert('No hay registros para exportar');
-  
+  // Usar directamente los datos de allEntries en lugar de leer del DOM
+  // Esto evita errores de lectura de celdas HTML y problemas con NaN
+  if (allEntries.length === 0) return alert('No hay registros para exportar');
+
   // Create workbook and worksheet using XLSX library for .xlsx format
   const wb = XLSX.utils.book_new();
-  
-  // Prepare data for worksheet
+
+  // Prepare data for worksheet - usar los datos crudos del array
   const data = [['Fecha', 'Tipo', 'Categoría', 'Monto', 'Descripción']];
-  rows.forEach(r => {
-    const cells = r.querySelectorAll('td');
+  allEntries.forEach(entry => {
     data.push([
-      cells[0].innerText,
-      cells[1].innerText,
-      cells[2].innerText,
-      parseFloat(cells[3].innerText.replace(/[^0-9.-]+/g,'')),
-      cells[4].innerText
+      entry.date || '',
+      entry.type || '',
+      entry.category || '',
+      Number(entry.amount) || 0,
+      entry.description || ''
     ]);
   });
-  
+
   const ws = XLSX.utils.aoa_to_sheet(data);
   XLSX.utils.book_append_sheet(wb, ws, 'Finanzas');
   XLSX.writeFile(wb, 'finances_export.xlsx');
