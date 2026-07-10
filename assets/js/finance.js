@@ -831,9 +831,17 @@ function applyFilter(){
 }
 
 function exportXlsx() {
-  // Verificar si hay datos en la fuente principal
-  if (!allEntries || allEntries.length === 0) {
-    return alert('No hay registros para exportar');
+  // Obtener las filas visibles de la tabla de historial (respeta los filtros aplicados)
+  const tableBody = document.querySelector('#entriesTable tbody');
+  if (!tableBody) {
+    return alert('Error: No se encontró la tabla de registros.');
+  }
+
+  const rows = tableBody.querySelectorAll('tr');
+  
+  // Verificar si hay datos visibles
+  if (rows.length === 0) {
+    return alert('No hay registros visibles para exportar. Aplica un filtro o agrega registros.');
   }
 
   // Verificar si la librería XLSX está cargada
@@ -841,38 +849,48 @@ function exportXlsx() {
     return alert('Error: La librería de Excel no se ha cargado. Verifica tu conexión a internet.');
   }
 
-  // Preparar datos directamente desde el array allEntries
-  // Esto evita errores de lectura del HTML visual
+  // Preparar datos leyendo directamente de la tabla HTML visible
   const data = [['Fecha', 'Tipo', 'Categoría', 'Monto', 'Descripción']];
 
-  allEntries.forEach(entry => {
-    // Validar y limpiar el monto para evitar NaN
-    let montoLimpio = entry.amount;
-    
-    // Si el monto es string, limpiarlo
-    if (typeof montoLimpio === 'string') {
-      montoLimpio = parseFloat(montoLimpio.replace(/[^0-9.-]+/g, ''));
-    }
-    
-    // Si sigue siendo inválido, ponerlo en 0 o dejarlo vacío, pero no NaN
-    if (isNaN(montoLimpio)) {
-      montoLimpio = 0; 
-    }
+  rows.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    if (cells.length >= 6) { // Asegurarse de que haya suficientes columnas
+      // Columna 0: Checkbox (ignorar)
+      // Columna 1: Fecha
+      // Columna 2: Tipo
+      // Columna 3: Categoría
+      // Columna 4: Monto
+      // Columna 5: Descripción
+      // Columna 6: Acciones (ignorar)
+      
+      const fecha = cells[1].textContent.trim();
+      const tipo = cells[2].textContent.trim();
+      const categoria = cells[3].textContent.trim();
+      // Limpiar el monto (quitar 'S/' y espacios)
+      const montoTexto = cells[4].textContent.replace('S/', '').replace(/\./g, '').trim();
+      const montoLimpio = parseFloat(montoTexto);
+      const descripcion = cells[5].textContent.trim();
 
-    data.push([
-      entry.date || '',           // Columna 1: Fecha
-      entry.type || '',            // Columna 2: Tipo
-      entry.category || '',       // Columna 3: Categoría
-      montoLimpio,                 // Columna 4: Monto (número puro)
-      entry.description || ''      // Columna 5: Descripción
-    ]);
+      data.push([
+        fecha,
+        tipo,
+        categoria,
+        isNaN(montoLimpio) ? 0 : montoLimpio,
+        descripcion
+      ]);
+    }
   });
+
+  // Si solo tenemos los encabezados (no se extrajeron filas válidas)
+  if (data.length === 1) {
+    return alert('No se pudieron extraer datos válidos de la tabla.');
+  }
 
   // Crear libro y hoja de cálculo
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(data);
 
-  // Ajustar ancho de columnas para mejor visualización -
+  // Ajustar ancho de columnas para mejor visualización
   const colWidths = [
     { wch: 12 }, // Fecha
     { wch: 10 }, // Tipo
