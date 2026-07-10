@@ -809,23 +809,61 @@ function applyFilter(){
 }
 
 function exportXlsx(){
-  // Usar directamente los datos de allEntries en lugar de leer del DOM
-  // Esto evita errores de lectura de celdas HTML y problemas con NaN
-  if (allEntries.length === 0) return alert('No hay registros para exportar');
+  // Obtener los datos filtrados o todos si no hay filtros
+  let rowsToExport = [];
+  
+  // Verificar si hay filtros activos en la tabla visible
+  const tbody = document.querySelector('#entriesTable tbody');
+  if(tbody && tbody.querySelectorAll('tr').length > 0){
+    // Leer los datos directamente de la tabla renderizada (que ya tiene los filtros aplicados)
+    const rows = tbody.querySelectorAll('tr');
+    rows.forEach(tr => {
+      const tds = tr.querySelectorAll('td');
+      if(tds.length >= 6){
+        const date = tds[1].textContent.trim();
+        const type = tds[2].textContent.trim();
+        const category = tds[3].textContent.trim();
+        // Remover el signo negativo si existe para el monto
+        let amountText = tds[4].textContent.trim().replace('S/ ', '').replace('-', '');
+        const amount = parseFloat(amountText) || 0;
+        const description = tds[5].textContent.trim();
+        
+        rowsToExport.push({
+          date: date,
+          type: type,
+          category: category,
+          amount: amount,
+          description: description
+        });
+      }
+    });
+  }
+  
+  // Si no hay datos en la tabla, usar allEntries como fallback
+  if(rowsToExport.length === 0 && allEntries.length > 0){
+    rowsToExport = allEntries.map(entry => ({
+      date: entry.date || '',
+      type: entry.type || '',
+      category: entry.category || '',
+      amount: Number(entry.amount) || 0,
+      description: entry.description || ''
+    }));
+  }
+  
+  if (rowsToExport.length === 0) return alert('No hay registros para exportar');
 
   // Create workbook and worksheet using XLSX library for .xlsx format
   const wb = XLSX.utils.book_new();
 
-  // Prepare data for worksheet - usar los datos crudos del array
-  // Asegurar orden correcto: Fecha, Tipo, Categoría, Monto, Descripción
+  // Prepare data for worksheet with correct column order: Fecha, Tipo, Categoría, Monto, Descripción
   const data = [['Fecha', 'Tipo', 'Categoría', 'Monto', 'Descripción']];
-  allEntries.forEach(entry => {
+  rowsToExport.forEach(entry => {
     data.push([
-      entry.date !== undefined ? entry.date : '',
-      entry.type !== undefined ? entry.type : '',
-      entry.category !== undefined ? entry.category : '',
+      entry.date || '',
+      entry.type || '',
+      entry.category || '',
       entry.amount !== undefined ? Number(entry.amount) : 0,
-      entry.description !== undefined ? entry.description : ''
+      entry.description || ''
     ]);
   });
 
