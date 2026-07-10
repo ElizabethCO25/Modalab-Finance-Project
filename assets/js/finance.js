@@ -825,7 +825,7 @@ function exportXlsx() {
 
   allEntries.forEach(entry => {
     // Validar y limpiar el monto para evitar NaN
-    let montoLimpio = entry.monto;
+    let montoLimpio = entry.amount;
     
     // Si el monto es string, limpiarlo
     if (typeof montoLimpio === 'string') {
@@ -838,11 +838,11 @@ function exportXlsx() {
     }
 
     data.push([
-      entry.fecha || '',           // Columna 1: Fecha
-      entry.tipo || '',            // Columna 2: Tipo
-      entry.categoria || '',       // Columna 3: Categoría
+      entry.date || '',           // Columna 1: Fecha
+      entry.type || '',            // Columna 2: Tipo
+      entry.category || '',       // Columna 3: Categoría
       montoLimpio,                 // Columna 4: Monto (número puro)
-      entry.descripcion || ''      // Columna 5: Descripción
+      entry.description || ''      // Columna 5: Descripción
     ]);
   });
 
