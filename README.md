@@ -266,13 +266,13 @@ El proyecto está diseñado para ser extendido fácilmente:
 
 ### Elizabeth Carhuatocto O.
 
-**Desarrolladora Full Stack**
+**Ingeniera de Sistemas | Desarrolladora Full Stack | UX/UI Designer**
 
-📧 Contacto: [Agregar email]  
-💼 LinkedIn: [Agregar perfil]  
-🌐 Ubicación: [Agregar ubicación]
+📧 Contacto:  eli.carhuatoctoo@gmail.com 
+💼 LinkedIn:  https://www.linkedin.com/in/eli-carhuatocto-olivera/
+🌐 Ubicación: Jesús María, Lima, Perú
 
-*"Creando soluciones tecnológicas que simplifican la gestión financiera"*
+*"Creando soluciones tecnológicas que simplifican la gestión de los emprendedores"*
 
 </div>
 
