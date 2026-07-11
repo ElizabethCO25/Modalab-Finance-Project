@@ -169,9 +169,15 @@
                 </div>
                 <div class="chart-navigation mt-3">
                   <div class="d-flex justify-content-center gap-2">
-                    <button class="btn btn-outline-secondary btn-sm" id="prevMonthBtn">← Anterior</button>
-                    <select id="chartCenterMonth" class="form-select form-select-sm" style="max-width: 160px;"></select>
-                    <button class="btn btn-outline-secondary btn-sm" id="nextMonthBtn">Siguiente →</button>
+                    <button class="btn btn-outline-secondary btn-sm" id="prevMonthBtn">
+                      <span class="btn-text-desktop">← Anterior</span>
+                      <span class="btn-text-mobile">←</span>
+                    </button>
+                    <select id="chartCenterMonth" class="form-select form-select-sm"></select>
+                    <button class="btn btn-outline-secondary btn-sm" id="nextMonthBtn">
+                      <span class="btn-text-desktop">Siguiente →</span>
+                      <span class="btn-text-mobile">→</span>
+                    </button>
                   </div>
                 </div>
               </div>

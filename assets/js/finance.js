@@ -29,8 +29,14 @@ function monthKey(dateStr) {
 }
 
 function formatMonthLabel(year, month) {
+  const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  return `${months[month - 1] || String(month).padStart(2, '0')} ${year}`;
+}
+
+function formatMonthLabelShort(year, month) {
   const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-  return months[month - 1] || `${String(month).padStart(2, '0')}/${year}`;
+  const shortYear = String(year).slice(-2);
+  return `${months[month - 1] || String(month).padStart(2, '0')} ${shortYear}`;
 }
 
 function parseYearMonth(dateStr) {
@@ -498,10 +504,15 @@ function buildMonthOptions() {
   }
 
   months.sort((a, b) => a.year === b.year ? a.month - b.month : a.year - b.year);
+  
+  // Determine format based on screen size
+  const isMobile = window.innerWidth <= 768;
+  const formatFunc = isMobile ? formatMonthLabelShort : formatMonthLabel;
+  
   months.forEach(m => {
     const option = document.createElement('option');
     option.value = `${m.year}-${String(m.month).padStart(2, '0')}`;
-    option.textContent = formatMonthLabel(m.year, m.month);
+    option.textContent = formatFunc(m.year, m.month);
     select.appendChild(option);
   });
 }
@@ -513,10 +524,23 @@ function updateChartCenterSelect() {
   if (!Array.from(select.options).some(opt => opt.value === value)) {
     const option = document.createElement('option');
     option.value = value;
-    option.textContent = formatMonthLabel(center.year, center.month);
+    const isMobile = window.innerWidth <= 768;
+    option.textContent = isMobile ? formatMonthLabelShort(center.year, center.month) : formatMonthLabel(center.year, center.month);
     select.appendChild(option);
   }
   select.value = value;
+}
+
+function updateMonthSelectorDisplay() {
+  // This function updates the visible text of the selected option based on screen size
+  const select = document.getElementById('chartCenterMonth');
+  const center = getCurrentCenter();
+  const isMobile = window.innerWidth <= 768;
+  const selectedOption = select.options[select.selectedIndex];
+  
+  if (selectedOption) {
+    selectedOption.textContent = isMobile ? formatMonthLabelShort(center.year, center.month) : formatMonthLabel(center.year, center.month);
+  }
 }
 
 function setChartCenter(year, month) {
@@ -837,6 +861,7 @@ function drawCharts(entries) {
   const map = computeMonthlyTotals(entries);
   const center = getCurrentCenter();
   const windowMonths = getChartWindow(center);
+  // Use full month labels for chart (desktop format)
   const labels = windowMonths.map(m => formatMonthLabel(m.year, m.month));
   const incomes = windowMonths.map(m => {
     const key = `${m.year}-${String(m.month).padStart(2, '0')}`;
@@ -1203,11 +1228,15 @@ function attachAdminEvents() {
     const current = getCurrentCenter();
     const prev = monthOffset(current, -1);
     setChartCenter(prev.year, prev.month);
+    // Update display after changing month
+    setTimeout(() => updateMonthSelectorDisplay(), 0);
   });
   document.getElementById('nextMonthBtn').addEventListener('click', () => {
     const current = getCurrentCenter();
     const next = monthOffset(current, 1);
     setChartCenter(next.year, next.month);
+    // Update display after changing month
+    setTimeout(() => updateMonthSelectorDisplay(), 0);
   });
 }
 
@@ -1860,4 +1889,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+  
+  // Add resize listener for month selector display update
+  window.addEventListener('resize', () => {
+    if (typeof updateMonthSelectorDisplay === 'function') {
+      updateMonthSelectorDisplay();
+    }
+  });
 });
