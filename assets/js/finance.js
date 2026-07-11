@@ -734,15 +734,53 @@ function computeMonthlyTotals(entries) {
 async function updateSummary(entries) {
   if (!entries) entries = await apiLoadEntries();
   window.latestEntries = entries;
+  allEntries = entries; // Asegurar que allEntries esté actualizado
   const map = computeMonthlyTotals(entries);
   const summaryEl = document.getElementById('summary');
   const chartCenterSelect = document.getElementById('chartCenterMonth');
 
   // Usar siempre el mes seleccionado en chartCenterMonth para el resumen mensual
   const selectedMonth = chartCenterSelect.value || '';
-  const data = map[selectedMonth] || { ingresos: 0, egresos: 0 };
-  const balance = data.ingresos - data.egresos;
-  summaryEl.innerHTML = `<div class="row"><div class="col"><strong>Total ingresos:</strong> S/ ${data.ingresos.toFixed(2)}</div><div class="col"><strong>Total egresos:</strong> S/ ${data.egresos.toFixed(2)}</div><div class="col"><strong>Balance:</strong> S/ ${balance.toFixed(2)}</div></div>`;
+  
+  // Parsear año y mes del selectedMonth (formato YYYY-MM)
+  const [year, month] = selectedMonth.split('-').map(Number);
+  
+  // Usar la nueva función calculateMonthlySummary que incluye saldo inicial y final
+  const summaryData = calculateMonthlySummary(year, month);
+  
+  const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+  const monthName = monthNames[month - 1];
+  
+  summaryEl.innerHTML = `
+    <div class="row text-center">
+        <div class="col-4">
+            <h6 class="text-success">Ingresos</h6>
+            <h4>S/ ${summaryData.ingresos.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h4>
+        </div>
+        <div class="col-4">
+            <h6 class="text-danger">Egresos</h6>
+            <h4>S/ ${summaryData.egresos.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h4>
+        </div>
+        <div class="col-4">
+            <h6 class="${summaryData.balance >= 0 ? 'text-primary' : 'text-danger'}">Balance</h6>
+            <h4>S/ ${summaryData.balance.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h4>
+        </div>
+    </div>
+    <hr class="my-2">
+    <div class="row text-center">
+        <div class="col-6">
+            <small class="text-muted">Saldo Inicial</small>
+            <h6 class="${summaryData.saldoInicial >= 0 ? 'text-success' : 'text-danger'}">S/ ${summaryData.saldoInicial.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h6>
+        </div>
+        <div class="col-6">
+            <small class="text-muted">Saldo Final</small>
+            <h6 class="${summaryData.saldoFinal >= 0 ? 'text-success' : 'text-danger'}">S/ ${summaryData.saldoFinal.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h6>
+        </div>
+    </div>
+    <div class="text-center mt-2 text-muted small">
+        Resumen de ${monthName} ${year}
+    </div>
+  `;
 
   refreshChart();
 }
@@ -825,9 +863,50 @@ function applyFilter() {
 
   renderEntries(rows);
   drawCharts(rows);
-  const totalIn = rows.reduce((sum, e) => sum + (e.type === 'ingreso' ? Number(e.amount) : 0), 0);
-  const totalOut = rows.reduce((sum, e) => sum + (e.type === 'egreso' ? Number(e.amount) : 0), 0);
-  document.getElementById('summary').innerHTML = `<div class="row"><div class="col"><strong>Ingresos:</strong> S/ ${totalIn.toFixed(2)}</div><div class="col"><strong>Egresos:</strong> S/ ${totalOut.toFixed(2)}</div><div class="col"><strong>Balance:</strong> S/ ${(totalIn - totalOut).toFixed(2)}</div></div>`;
+  
+  // Calcular resumen con saldo inicial si hay filtro de mes
+  if (filterMonth) {
+    const [year, month] = filterMonth.split('-').map(Number);
+    const summaryData = calculateMonthlySummary(year, month);
+    const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    const monthName = monthNames[month - 1];
+    
+    document.getElementById('summary').innerHTML = `
+      <div class="row text-center">
+          <div class="col-4">
+              <h6 class="text-success">Ingresos</h6>
+              <h4>S/ ${summaryData.ingresos.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h4>
+          </div>
+          <div class="col-4">
+              <h6 class="text-danger">Egresos</h6>
+              <h4>S/ ${summaryData.egresos.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h4>
+          </div>
+          <div class="col-4">
+              <h6 class="${summaryData.balance >= 0 ? 'text-primary' : 'text-danger'}">Balance</h6>
+              <h4>S/ ${summaryData.balance.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h4>
+          </div>
+      </div>
+      <hr class="my-2">
+      <div class="row text-center">
+          <div class="col-6">
+              <small class="text-muted">Saldo Inicial</small>
+              <h6 class="${summaryData.saldoInicial >= 0 ? 'text-success' : 'text-danger'}">S/ ${summaryData.saldoInicial.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h6>
+          </div>
+          <div class="col-6">
+              <small class="text-muted">Saldo Final</small>
+              <h6 class="${summaryData.saldoFinal >= 0 ? 'text-success' : 'text-danger'}">S/ ${summaryData.saldoFinal.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h6>
+          </div>
+      </div>
+      <div class="text-center mt-2 text-muted small">
+        Resumen de ${monthName} ${year}
+      </div>
+    `;
+  } else {
+    // Si no hay filtro de mes, mostrar resumen simple de los registros filtrados
+    const totalIn = rows.reduce((sum, e) => sum + (e.type === 'ingreso' ? Number(e.amount) : 0), 0);
+    const totalOut = rows.reduce((sum, e) => sum + (e.type === 'egreso' ? Number(e.amount) : 0), 0);
+    document.getElementById('summary').innerHTML = `<div class="row"><div class="col"><strong>Ingresos:</strong> S/ ${totalIn.toFixed(2)}</div><div class="col"><strong>Egresos:</strong> S/ ${totalOut.toFixed(2)}</div><div class="col"><strong>Balance:</strong> S/ ${(totalIn - totalOut).toFixed(2)}</div></div>`;
+  }
 }
 
 function exportXlsx() {
@@ -1243,25 +1322,42 @@ function calculateMonthlySummary(year, month) {
   // Obtener todos los registros (asegúrate de tener 'allEntries' cargado o pásalo como argumento)
   const entries = allEntries || [];
 
-  let ingresos = 0;
-  let egresos = 0;
+  let ingresosMes = 0;
+  let egresosMes = 0;
+  let saldoInicial = 0;
 
   entries.forEach(entry => {
     const [eYear, eMonth] = entry.date.split('-').map(Number);
+    const amount = parseFloat(entry.amount) || 0;
 
-    // Filtrar solo si coincide el año y el mes
-    if (eYear === year && eMonth === month) {
+    // Calcular saldo inicial: todos los registros ANTERIORES al mes seleccionado
+    if (eYear < year || (eYear === year && eMonth < month)) {
       if (entry.type === 'ingreso') {
-        ingresos += parseFloat(entry.amount) || 0;
+        saldoInicial += amount;
       } else if (entry.type === 'egreso') {
-        egresos += parseFloat(entry.amount) || 0;
+        saldoInicial -= amount;
+      }
+    }
+    // Calcular ingresos y egresos DEL mes seleccionado
+    else if (eYear === year && eMonth === month) {
+      if (entry.type === 'ingreso') {
+        ingresosMes += amount;
+      } else if (entry.type === 'egreso') {
+        egresosMes += amount;
       }
     }
   });
 
-  const balance = ingresos - egresos;
+  const balanceMes = ingresosMes - egresosMes;
+  const saldoFinal = saldoInicial + balanceMes;
 
-  return { ingresos, egresos, balance };
+  return { 
+    ingresos: ingresosMes, 
+    egresos: egresosMes, 
+    balance: balanceMes,
+    saldoInicial: saldoInicial,
+    saldoFinal: saldoFinal
+  };
 }
 
 //Función para actualizar la vista del resumen
@@ -1295,6 +1391,17 @@ function updateSummaryDisplay() {
                 <div class="col-4">
                     <h6 class="${summaryData.balance >= 0 ? 'text-primary' : 'text-danger'}">Balance</h6>
                     <h4>S/ ${summaryData.balance.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h4>
+                </div>
+            </div>
+            <hr class="my-2">
+            <div class="row text-center">
+                <div class="col-6">
+                    <small class="text-muted">Saldo Inicial</small>
+                    <h6 class="${summaryData.saldoInicial >= 0 ? 'text-success' : 'text-danger'}">S/ ${summaryData.saldoInicial.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h6>
+                </div>
+                <div class="col-6">
+                    <small class="text-muted">Saldo Final</small>
+                    <h6 class="${summaryData.saldoFinal >= 0 ? 'text-success' : 'text-danger'}">S/ ${summaryData.saldoFinal.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h6>
                 </div>
             </div>
             <div class="text-center mt-2 text-muted small">
