@@ -908,7 +908,7 @@ function drawCharts(entries) {
           },
           ticks: {
             callback: function(value) {
-              return 'S/ ' + value.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+              return 'S/ ' + Math.round(value).toLocaleString('es-ES');
             }
           }
         },
