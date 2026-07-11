@@ -93,16 +93,25 @@ body {
 
 .chart-navigation {
   width: 100%;
-  padding: 0.5rem 0;
+  padding: 1rem 0;
+  text-align: center;
+}
+
+.chart-navigation .d-flex {
+  justify-content: center !important;
+  width: 100%;
 }
 
 .chart-navigation .btn-sm {
-  font-size: 0.8rem;
-  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.85rem;
+  min-width: 100px;
 }
 
 .chart-navigation select {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
+  min-width: 140px;
+  max-width: 180px;
 }
 
 .admin-panel .list-group-item {
