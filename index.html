@@ -140,8 +140,8 @@
                   <span>Resumen mensual</span>
                   <button class="btn btn-sm btn-outline-info" id="toggleAccumulatedBtn" title="Mostrar/Ocultar balance acumulado">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/>
-                      <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/>
+                      <path d="M8 1a1 1 0 0 1 .668.255l4.75 4.75a1 1 0 0 1 0 1.414l-4.75 4.75A1 1 0 0 1 8 13H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3zm0-1H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h3a2 2 0 0 0 1.414-.586l4.75-4.75a2 2 0 0 0 0-2.828l-4.75-4.75A2 2 0 0 0 8 0z"/>
+                      <path d="M3 5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zm2-1a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1H5z"/>
                     </svg>
                     Balance Acumulado
                   </button>
@@ -164,16 +164,14 @@
                     </div>
                   </div>
                 </div>
-                <div class="d-flex chart-panel flex-column flex-lg-row align-items-stretch">
-                  <div class="chart-area flex-fill">
-                    <canvas id="monthChart" height="200"></canvas>
-                  </div>
-                  <div class="chart-sidebar mt-3 mt-lg-0 ms-lg-3 p-2">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                      <button class="btn btn-outline-secondary btn-sm" id="prevMonthBtn">←</button>
-                      <select id="chartCenterMonth" class="form-select form-select-sm" style="max-width: 140px;"></select>
-                      <button class="btn btn-outline-secondary btn-sm" id="nextMonthBtn">→</button>
-                    </div>
+                <div class="chart-area">
+                  <canvas id="monthChart" height="200"></canvas>
+                </div>
+                <div class="chart-navigation mt-3">
+                  <div class="d-flex justify-content-center gap-2">
+                    <button class="btn btn-outline-secondary btn-sm" id="prevMonthBtn">← Anterior</button>
+                    <select id="chartCenterMonth" class="form-select form-select-sm" style="max-width: 160px;"></select>
+                    <button class="btn btn-outline-secondary btn-sm" id="nextMonthBtn">Siguiente →</button>
                   </div>
                 </div>
               </div>
