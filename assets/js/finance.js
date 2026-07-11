@@ -1469,10 +1469,6 @@ function showAdminPanel(isAdmin) {
 }
 
 async function init() {
-  // Cargar configuración UI primero
-  await loadUISettings();
-  applyUISettings();
-
   // Inicializar usuarios por defecto
   await initDefaultUsers();
 
@@ -1570,7 +1566,10 @@ async function handleLogin(e) {
     loadUISettingsForm();
   }
 
-  init();
+  // Inicializar la aplicación con await para asegurar que todo se cargue correctamente
+  await loadUISettings();
+  applyUISettings();
+  await init();
 }
 
 function handleLogout() {
@@ -1589,6 +1588,10 @@ async function checkSession() {
       currentUser = JSON.parse(savedUser);
       const users = await apiLoadUsers();
       if (users[currentUser.username]) {
+        // Cargar configuración UI primero
+        await loadUISettings();
+        applyUISettings();
+        
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('appContainer').style.display = 'block';
 
@@ -1602,10 +1605,19 @@ async function checkSession() {
           loadUISettingsForm();
         }
 
+        // Inicializar la aplicación correctamente cuando hay sesión
+        await init();
         return true;
+      } else {
+        // El usuario ya no existe, limpiar sesión
+        localStorage.removeItem('currentUser');
+        currentUser = null;
       }
     } catch (e) {
       console.warn('Error al validar sesión', e);
+      // En caso de error, limpiar sesión para evitar bucles
+      localStorage.removeItem('currentUser');
+      currentUser = null;
     }
   }
   return false;
@@ -1615,6 +1627,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const hasSession = await checkSession();
 
   if (!hasSession) {
+    // Solo mostrar login si no hay sesión y cargar UI settings
+    await loadUISettings();
+    applyUISettings();
+    
     document.getElementById('loginScreen').style.display = 'block';
     document.getElementById('appContainer').style.display = 'none';
 
@@ -1622,7 +1638,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
   } else {
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-    await refreshEntries();
+    // init() ya fue llamado desde checkSession(), no necesitamos hacer nada más aquí
   }
 }) //aqui
 
