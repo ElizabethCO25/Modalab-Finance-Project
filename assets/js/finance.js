@@ -90,6 +90,8 @@ async function apiSaveEntry(entry) {
     console.log('apiSaveEntry: nuevo ID asignado:', doc.id);
     allEntries.unshift(newEntry);
     updateSummaryDisplay();
+    // Actualizar también el balance acumulado si está visible
+    updateAccumulatedDisplay();
     return newEntry;
   } catch (e) {
     console.warn('Error guardando en Firestore, usando localStorage', e.message || e);
@@ -100,6 +102,7 @@ async function apiSaveEntry(entry) {
     saveEntriesLocal(entries);
     allEntries = entries;
     updateSummaryDisplay();
+    updateAccumulatedDisplay();
     return newEntry;
   }
 }
@@ -112,6 +115,7 @@ async function apiDeleteEntry(id) {
     allEntries = allEntries.filter(e => e.id !== id);
     console.log('apiDeleteEntry: entradas restantes:', allEntries.map(e => e.id));
     updateSummaryDisplay();
+    updateAccumulatedDisplay();
   } catch (e) {
     console.warn('Error borrando en Firestore, usando localStorage', e.message || e);
     const entries = loadEntriesLocal();
@@ -119,6 +123,7 @@ async function apiDeleteEntry(id) {
     saveEntriesLocal(updated);
     allEntries = updated;
     updateSummaryDisplay();
+    updateAccumulatedDisplay();
   }
 }
 
@@ -152,6 +157,7 @@ async function apiUpdateEntry(entry, docId) {
       console.log('apiUpdateEntry: registro agregado (no existía previamente)');
     }
     updateSummaryDisplay();
+    updateAccumulatedDisplay();
   } catch (e) {
     console.warn('Error actualizando en Firestore, usando localStorage', e.message || e);
     if (!docId) {
@@ -170,6 +176,7 @@ async function apiUpdateEntry(entry, docId) {
     saveEntriesLocal(entries);
     allEntries = entries;
     updateSummaryDisplay();
+    updateAccumulatedDisplay();
   }
 }
 
@@ -482,6 +489,8 @@ function setChartCenter(year, month) {
   if (window.latestEntries) {
     updateSummary(window.latestEntries);
   }
+  // Actualizar el display del resumen con la nueva función
+  updateSummaryDisplay();
 }
 
 function refreshChart() {
@@ -494,6 +503,7 @@ async function refreshEntries() {
   window.latestEntries = entries;
   renderEntries(entries);
   await updateSummary(entries);
+  updateSummaryDisplay();
 }
 
 function safeDateCompare(date, boundary) {
@@ -734,15 +744,53 @@ function computeMonthlyTotals(entries) {
 async function updateSummary(entries) {
   if (!entries) entries = await apiLoadEntries();
   window.latestEntries = entries;
+  allEntries = entries; // Asegurar que allEntries esté actualizado
   const map = computeMonthlyTotals(entries);
   const summaryEl = document.getElementById('summary');
   const chartCenterSelect = document.getElementById('chartCenterMonth');
 
   // Usar siempre el mes seleccionado en chartCenterMonth para el resumen mensual
   const selectedMonth = chartCenterSelect.value || '';
-  const data = map[selectedMonth] || { ingresos: 0, egresos: 0 };
-  const balance = data.ingresos - data.egresos;
-  summaryEl.innerHTML = `<div class="row"><div class="col"><strong>Total ingresos:</strong> S/ ${data.ingresos.toFixed(2)}</div><div class="col"><strong>Total egresos:</strong> S/ ${data.egresos.toFixed(2)}</div><div class="col"><strong>Balance:</strong> S/ ${balance.toFixed(2)}</div></div>`;
+  
+  // Parsear año y mes del selectedMonth (formato YYYY-MM)
+  const [year, month] = selectedMonth.split('-').map(Number);
+  
+  // Usar la nueva función calculateMonthlySummary que incluye saldo inicial y final
+  const summaryData = calculateMonthlySummary(year, month);
+  
+  const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+  const monthName = monthNames[month - 1];
+  
+  summaryEl.innerHTML = `
+    <div class="row text-center">
+        <div class="col-4">
+            <h6 class="text-success">Ingresos</h6>
+            <h4>S/ ${summaryData.ingresos.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h4>
+        </div>
+        <div class="col-4">
+            <h6 class="text-danger">Egresos</h6>
+            <h4>S/ ${summaryData.egresos.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h4>
+        </div>
+        <div class="col-4">
+            <h6 class="${summaryData.balance >= 0 ? 'text-primary' : 'text-danger'}">Balance</h6>
+            <h4>S/ ${summaryData.balance.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h4>
+        </div>
+    </div>
+    <hr class="my-2">
+    <div class="row text-center">
+        <div class="col-6">
+            <small class="text-muted">Saldo Inicial</small>
+            <h6 class="${summaryData.saldoInicial >= 0 ? 'text-success' : 'text-danger'}">S/ ${summaryData.saldoInicial.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h6>
+        </div>
+        <div class="col-6">
+            <small class="text-muted">Saldo Final</small>
+            <h6 class="${summaryData.saldoFinal >= 0 ? 'text-success' : 'text-danger'}">S/ ${summaryData.saldoFinal.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h6>
+        </div>
+    </div>
+    <div class="text-center mt-2 text-muted small">
+        Resumen de ${monthName} ${year}
+    </div>
+  `;
 
   refreshChart();
 }
@@ -760,6 +808,12 @@ function drawCharts(entries) {
     const key = `${m.year}-${String(m.month).padStart(2, '0')}`;
     return (map[key] && map[key].egresos) || 0;
   });
+  
+  // Calcular saldos finales acumulados para cada mes en la ventana
+  const balanceFinals = windowMonths.map(m => {
+    const summary = calculateMonthlySummary(m.year, m.month);
+    return summary.saldoFinal;
+  });
 
   const ctx = document.getElementById('monthChart').getContext('2d');
   if (monthChart) monthChart.destroy();
@@ -768,15 +822,76 @@ function drawCharts(entries) {
     data: {
       labels,
       datasets: [
-        { label: 'Ingresos', data: incomes, backgroundColor: 'rgba(40,167,69,0.8)' },
-        { label: 'Egresos', data: expenses, backgroundColor: 'rgba(220,53,69,0.8)' }
+        { 
+          label: 'Ingresos', 
+          data: incomes, 
+          backgroundColor: 'rgba(40,167,69,0.8)',
+          yAxisID: 'y'
+        },
+        { 
+          label: 'Egresos', 
+          data: expenses, 
+          backgroundColor: 'rgba(220,53,69,0.8)',
+          yAxisID: 'y'
+        },
+        {
+          label: 'Saldo Final',
+          data: balanceFinals,
+          type: 'line',
+          borderColor: 'rgba(13,110,253,1)',
+          backgroundColor: 'rgba(13,110,253,0.2)',
+          borderWidth: 3,
+          fill: false,
+          tension: 0.3,
+          yAxisID: 'y1',
+          pointRadius: 5,
+          pointHoverRadius: 7
+        }
       ]
     },
     options: {
       responsive: true,
-      plugins: { legend: { position: 'top' } },
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: { 
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label || '';
+              if (label) {
+                label += ': ';
+              }
+              if (context.parsed.y !== null) {
+                label += 'S/ ' + context.parsed.y.toLocaleString('es-ES', { minimumFractionDigits: 2 });
+              }
+              return label;
+            }
+          }
+        }
+      },
       scales: {
-        y: { beginAtZero: true },
+        y: { 
+          beginAtZero: true,
+          position: 'left',
+          title: {
+            display: true,
+            text: 'Ingresos/Egresos'
+          }
+        },
+        y1: {
+          beginAtZero: false,
+          position: 'right',
+          grid: {
+            drawOnChartArea: false
+          },
+          title: {
+            display: true,
+            text: 'Saldo Acumulado'
+          }
+        },
         x: { grid: { display: false } }
       }
     }
@@ -796,6 +911,11 @@ function clearFilters() {
   renderEntries(rows);
   drawCharts(rows);
   updateSummaryDisplay();
+  // Ocultar el resumen acumulado si está visible
+  const accumulatedDiv = document.getElementById('accumulatedSummary');
+  if (accumulatedDiv) {
+    accumulatedDiv.style.display = 'none';
+  }
 }
 
 function applyFilter() {
@@ -825,9 +945,50 @@ function applyFilter() {
 
   renderEntries(rows);
   drawCharts(rows);
-  const totalIn = rows.reduce((sum, e) => sum + (e.type === 'ingreso' ? Number(e.amount) : 0), 0);
-  const totalOut = rows.reduce((sum, e) => sum + (e.type === 'egreso' ? Number(e.amount) : 0), 0);
-  document.getElementById('summary').innerHTML = `<div class="row"><div class="col"><strong>Ingresos:</strong> S/ ${totalIn.toFixed(2)}</div><div class="col"><strong>Egresos:</strong> S/ ${totalOut.toFixed(2)}</div><div class="col"><strong>Balance:</strong> S/ ${(totalIn - totalOut).toFixed(2)}</div></div>`;
+  
+  // Calcular resumen con saldo inicial si hay filtro de mes
+  if (filterMonth) {
+    const [year, month] = filterMonth.split('-').map(Number);
+    const summaryData = calculateMonthlySummary(year, month);
+    const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    const monthName = monthNames[month - 1];
+    
+    document.getElementById('summary').innerHTML = `
+      <div class="row text-center">
+          <div class="col-4">
+              <h6 class="text-success">Ingresos</h6>
+              <h4>S/ ${summaryData.ingresos.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h4>
+          </div>
+          <div class="col-4">
+              <h6 class="text-danger">Egresos</h6>
+              <h4>S/ ${summaryData.egresos.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h4>
+          </div>
+          <div class="col-4">
+              <h6 class="${summaryData.balance >= 0 ? 'text-primary' : 'text-danger'}">Balance</h6>
+              <h4>S/ ${summaryData.balance.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h4>
+          </div>
+      </div>
+      <hr class="my-2">
+      <div class="row text-center">
+          <div class="col-6">
+              <small class="text-muted">Saldo Inicial</small>
+              <h6 class="${summaryData.saldoInicial >= 0 ? 'text-success' : 'text-danger'}">S/ ${summaryData.saldoInicial.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h6>
+          </div>
+          <div class="col-6">
+              <small class="text-muted">Saldo Final</small>
+              <h6 class="${summaryData.saldoFinal >= 0 ? 'text-success' : 'text-danger'}">S/ ${summaryData.saldoFinal.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h6>
+          </div>
+      </div>
+      <div class="text-center mt-2 text-muted small">
+        Resumen de ${monthName} ${year}
+      </div>
+    `;
+  } else {
+    // Si no hay filtro de mes, mostrar resumen simple de los registros filtrados
+    const totalIn = rows.reduce((sum, e) => sum + (e.type === 'ingreso' ? Number(e.amount) : 0), 0);
+    const totalOut = rows.reduce((sum, e) => sum + (e.type === 'egreso' ? Number(e.amount) : 0), 0);
+    document.getElementById('summary').innerHTML = `<div class="row"><div class="col"><strong>Ingresos:</strong> S/ ${totalIn.toFixed(2)}</div><div class="col"><strong>Egresos:</strong> S/ ${totalOut.toFixed(2)}</div><div class="col"><strong>Balance:</strong> S/ ${(totalIn - totalOut).toFixed(2)}</div></div>`;
+  }
 }
 
 function exportXlsx() {
@@ -1243,25 +1404,42 @@ function calculateMonthlySummary(year, month) {
   // Obtener todos los registros (asegúrate de tener 'allEntries' cargado o pásalo como argumento)
   const entries = allEntries || [];
 
-  let ingresos = 0;
-  let egresos = 0;
+  let ingresosMes = 0;
+  let egresosMes = 0;
+  let saldoInicial = 0;
 
   entries.forEach(entry => {
     const [eYear, eMonth] = entry.date.split('-').map(Number);
+    const amount = parseFloat(entry.amount) || 0;
 
-    // Filtrar solo si coincide el año y el mes
-    if (eYear === year && eMonth === month) {
+    // Calcular saldo inicial: todos los registros ANTERIORES al mes seleccionado
+    if (eYear < year || (eYear === year && eMonth < month)) {
       if (entry.type === 'ingreso') {
-        ingresos += parseFloat(entry.amount) || 0;
+        saldoInicial += amount;
       } else if (entry.type === 'egreso') {
-        egresos += parseFloat(entry.amount) || 0;
+        saldoInicial -= amount;
+      }
+    }
+    // Calcular ingresos y egresos DEL mes seleccionado
+    else if (eYear === year && eMonth === month) {
+      if (entry.type === 'ingreso') {
+        ingresosMes += amount;
+      } else if (entry.type === 'egreso') {
+        egresosMes += amount;
       }
     }
   });
 
-  const balance = ingresos - egresos;
+  const balanceMes = ingresosMes - egresosMes;
+  const saldoFinal = saldoInicial + balanceMes;
 
-  return { ingresos, egresos, balance };
+  return { 
+    ingresos: ingresosMes, 
+    egresos: egresosMes, 
+    balance: balanceMes,
+    saldoInicial: saldoInicial,
+    saldoFinal: saldoFinal
+  };
 }
 
 //Función para actualizar la vista del resumen
@@ -1297,6 +1475,17 @@ function updateSummaryDisplay() {
                     <h4>S/ ${summaryData.balance.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h4>
                 </div>
             </div>
+            <hr class="my-2">
+            <div class="row text-center">
+                <div class="col-6">
+                    <small class="text-muted">Saldo Inicial</small>
+                    <h6 class="${summaryData.saldoInicial >= 0 ? 'text-success' : 'text-danger'}">S/ ${summaryData.saldoInicial.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h6>
+                </div>
+                <div class="col-6">
+                    <small class="text-muted">Saldo Final</small>
+                    <h6 class="${summaryData.saldoFinal >= 0 ? 'text-success' : 'text-danger'}">S/ ${summaryData.saldoFinal.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h6>
+                </div>
+            </div>
             <div class="text-center mt-2 text-muted small">
                 Resumen de ${monthName} ${year}
             </div>
@@ -1318,6 +1507,50 @@ if (monthSelector) {
   // Llamar una vez al inicio para cargar el mes actual
   updateSummaryDisplay();
 };
+
+// Función para mostrar/ocultar el balance acumulado
+function toggleAccumulatedSummary() {
+  const accumulatedDiv = document.getElementById('accumulatedSummary');
+  if (accumulatedDiv) {
+    const isHidden = accumulatedDiv.style.display === 'none' || accumulatedDiv.style.display === '';
+    accumulatedDiv.style.display = isHidden ? 'block' : 'none';
+    if (isHidden) {
+      updateAccumulatedDisplay();
+    }
+  }
+}
+
+// Función para calcular y mostrar el balance acumulado histórico
+function updateAccumulatedDisplay() {
+  const entries = allEntries || [];
+  
+  let totalIngresos = 0;
+  let totalEgresos = 0;
+  
+  entries.forEach(entry => {
+    const amount = parseFloat(entry.amount) || 0;
+    if (entry.type === 'ingreso') {
+      totalIngresos += amount;
+    } else if (entry.type === 'egreso') {
+      totalEgresos += amount;
+    }
+  });
+  
+  const totalBalance = totalIngresos - totalEgresos;
+  
+  document.getElementById('totalIncomes').textContent = `S/ ${totalIngresos.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`;
+  document.getElementById('totalExpenses').textContent = `S/ ${totalEgresos.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`;
+  
+  const balanceEl = document.getElementById('totalBalance');
+  balanceEl.textContent = `S/ ${totalBalance.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`;
+  balanceEl.className = totalBalance >= 0 ? 'text-success' : 'text-danger';
+}
+
+// Event listener para el botón de toggle del balance acumulado - integrado en el DOMContentLoaded principal
+const toggleBtn = document.getElementById('toggleAccumulatedBtn');
+if (toggleBtn) {
+  toggleBtn.addEventListener('click', toggleAccumulatedSummary);
+}
 
 // Funciones para la barra de acciones global (estilo Gmail)
 function updateActionBar() {
