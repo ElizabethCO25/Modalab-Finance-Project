@@ -20,6 +20,7 @@ let chartCenter = null;
 let monthChart = null;
 let allEntries = []; // Variable global para almacenar todos los registros
 let selectedEntries = new Set(); // IDs de registros seleccionados
+let currentUser = null; // Usuario actualmente logueado
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
@@ -297,32 +298,7 @@ async function saveUISettings() {
 
 function applyUISettings() {
   document.getElementById('appTitle').textContent = uiSettings.appTitle || 'Registro de Ingresos y Egresos';
-  document.getElementById('loginTitle').textContent = uiSettings.appTitle || 'Iniciar Sesión';
   
-  // Actualizar favicon si hay logo
-  if (uiSettings.logoUrl) {
-    let favicon = document.querySelector("link[rel='icon']");
-    if (!favicon) {
-      favicon = document.createElement('link');
-      favicon.rel = 'icon';
-      favicon.type = 'image/png';
-      document.head.appendChild(favicon);
-    }
-    favicon.href = uiSettings.logoUrl;
-  }
-
-  const navLogo = document.getElementById('navLogo');
-  const loginLogo = document.getElementById('loginLogo');
-  if (uiSettings.logoUrl) {
-    navLogo.src = uiSettings.logoUrl;
-    navLogo.style.display = 'block';
-    loginLogo.src = uiSettings.logoUrl;
-    loginLogo.style.display = 'block';
-  } else {
-    navLogo.style.display = 'none';
-    loginLogo.style.display = 'none';
-  }
-
   const customStyles = document.getElementById('customStyles');
   let css = '';
   if (uiSettings.primaryColor) {
@@ -1612,12 +1588,14 @@ async function checkSession() {
         // El usuario ya no existe, limpiar sesión
         localStorage.removeItem('currentUser');
         currentUser = null;
+        return false;
       }
     } catch (e) {
       console.warn('Error al validar sesión', e);
       // En caso de error, limpiar sesión para evitar bucles
       localStorage.removeItem('currentUser');
       currentUser = null;
+      return false;
     }
   }
   return false;
@@ -1640,7 +1618,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
     // init() ya fue llamado desde checkSession(), no necesitamos hacer nada más aquí
   }
-}) //aqui
+});
 
 // Función para calcular el resumen filtrado por mes
 //Añade o modifica esta función para que acepte un año y mes específicos:
