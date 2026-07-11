@@ -831,7 +831,7 @@ function applyFilter(){
 }
 
 function exportXlsx() {
-    // 1. Obtener los datos directamente de la tabla visible (respeta filtros)
+    // 1. Obtener los datos directamente de la tabla visible (respeta filtros aplicados)
     const tableBody = document.querySelector('#entriesTable tbody');
     if (!tableBody) {
         return alert('Error: No se encontró la tabla de registros.');
