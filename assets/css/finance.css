@@ -110,8 +110,36 @@ body {
 
 .chart-navigation select {
   font-size: 0.9rem;
-  min-width: 140px;
-  max-width: 180px;
+  min-width: 160px;
+  max-width: 220px;
+}
+
+/* Mobile styles for chart navigation */
+@media (max-width: 768px) {
+  .btn-text-desktop {
+    display: none;
+  }
+  
+  .btn-text-mobile {
+    display: inline;
+  }
+  
+  .chart-navigation .btn-sm {
+    min-width: 48px;
+    padding: 0.4rem 0.6rem;
+  }
+  
+  .chart-navigation select {
+    min-width: 100px;
+    max-width: 140px;
+    font-size: 0.8rem;
+  }
+}
+
+@media (min-width: 769px) {
+  .btn-text-mobile {
+    display: none;
+  }
 }
 
 .admin-panel .list-group-item {
