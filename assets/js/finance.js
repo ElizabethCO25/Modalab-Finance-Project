@@ -9,9 +9,9 @@ const entriesRef = db.collection('entries');
 const settingsRef = db.collection('settings').doc('config');
 const usersRef = db.collection('users');
 const uiSettingsRef = db.collection('uiSettings').doc('config');
-const defaultCategories = { 
-  ingresos: ['Sueldo', 'Ventas', 'Freelance', 'Otros'], 
-  egresos: ['Comida', 'Transporte', 'Servicios', 'Otros'] 
+const defaultCategories = {
+  ingresos: ['Sueldo', 'Ventas', 'Freelance', 'Otros'],
+  egresos: ['Comida', 'Transporte', 'Servicios', 'Otros']
 };
 const CHART_WINDOW_SIZE = 3;
 let userSettings = { categories: { ingresos: [...defaultCategories.ingresos], egresos: [...defaultCategories.egresos] }, showFutureMonths: true };
@@ -21,41 +21,41 @@ let monthChart = null;
 let allEntries = []; // Variable global para almacenar todos los registros
 let selectedEntries = new Set(); // IDs de registros seleccionados
 
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
-function monthKey(dateStr){
+function monthKey(dateStr) {
   const [y, m] = dateStr.split('-').map(Number);
   return `${y}-${String(m).padStart(2, '0')}`;
 }
 
-function formatMonthLabel(year, month){
-  return `${String(month).padStart(2,'0')}/${year}`;
+function formatMonthLabel(year, month) {
+  return `${String(month).padStart(2, '0')}/${year}`;
 }
 
-function parseYearMonth(dateStr){
+function parseYearMonth(dateStr) {
   const [y, m] = dateStr.split('-').map(Number);
   return { year: y, month: m };
 }
 
-function monthOffset(base, offset){
+function monthOffset(base, offset) {
   let year = base.year;
   let month = base.month + offset;
-  while(month < 1){ month += 12; year -= 1; }
-  while(month > 12){ month -= 12; year += 1; }
+  while (month < 1) { month += 12; year -= 1; }
+  while (month > 12) { month -= 12; year += 1; }
   return { year, month };
 }
 
-function getCurrentCenter(){
-  if(chartCenter) return chartCenter;
+function getCurrentCenter() {
+  if (chartCenter) return chartCenter;
   const now = new Date();
   return { year: now.getFullYear(), month: now.getMonth() + 1 };
 }
 
-function compareDatesDesc(a, b){
+function compareDatesDesc(a, b) {
   return b.date.localeCompare(a.date);
 }
 
-async function apiLoadEntries(){
+async function apiLoadEntries() {
   try {
     const snapshot = await entriesRef.get();
     const entries = [];
@@ -79,7 +79,7 @@ async function apiLoadEntries(){
   }
 }
 
-async function apiSaveEntry(entry){
+async function apiSaveEntry(entry) {
   try {
     console.log('apiSaveEntry: creando nuevo registro con datos:', entry);
     // Nuevo registro: crear documento y asignar su id real
@@ -104,7 +104,7 @@ async function apiSaveEntry(entry){
   }
 }
 
-async function apiDeleteEntry(id){
+async function apiDeleteEntry(id) {
   try {
     console.log('apiDeleteEntry: eliminando doc con ID:', id);
     await entriesRef.doc(id).delete();
@@ -122,27 +122,27 @@ async function apiDeleteEntry(id){
   }
 }
 
-async function apiUpdateEntry(entry, docId){
+async function apiUpdateEntry(entry, docId) {
   try {
     // Usar SIEMPRE el docId pasado como parámetro (es el doc.id real de Firestore)
-    if(!docId){
+    if (!docId) {
       console.error('apiUpdateEntry: docId es requerido');
       return;
     }
     console.log('apiUpdateEntry: actualizando doc con ID:', docId);
-    
+
     // Crear una copia del entry sin el campo id para evitar inconsistencias
     const { id, ...entryData } = entry;
-    
+
     // Actualizar el documento en Firestore - USAR set SIN merge para reemplazar completamente
     // y eliminar cualquier campo 'id' interno viejo que pueda existir
     await entriesRef.doc(docId).set(entryData);
-    
+
     // Actualizar array local: buscar por docId y reemplazar
     const existingIdx = allEntries.findIndex(e => e.id === docId);
     const updatedEntry = { ...entryData, id: docId };
-    
-    if(existingIdx >= 0){
+
+    if (existingIdx >= 0) {
       // Reemplazar el registro existente
       allEntries[existingIdx] = updatedEntry;
       console.log('apiUpdateEntry: registro actualizado en índice', existingIdx);
@@ -154,7 +154,7 @@ async function apiUpdateEntry(entry, docId){
     updateSummaryDisplay();
   } catch (e) {
     console.warn('Error actualizando en Firestore, usando localStorage', e.message || e);
-    if(!docId){
+    if (!docId) {
       console.error('apiUpdateEntry: docId es requerido incluso en fallback');
       return;
     }
@@ -162,7 +162,7 @@ async function apiUpdateEntry(entry, docId){
     const { id, ...entryData } = entry;
     const updatedEntry = { ...entryData, id: docId };
     const existingIdx = entries.findIndex(e => e.id === docId);
-    if(existingIdx >= 0){
+    if (existingIdx >= 0) {
       entries[existingIdx] = updatedEntry;
     } else {
       entries.unshift(updatedEntry);
@@ -173,26 +173,26 @@ async function apiUpdateEntry(entry, docId){
   }
 }
 
-function loadEntriesLocal(){
+function loadEntriesLocal() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
   catch (e) { return []; }
 }
 
-function saveEntriesLocal(entries){
+function saveEntriesLocal(entries) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
 }
 
-function loadSettingsLocal(){
+function loadSettingsLocal() {
   try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null'); }
   catch (e) { return null; }
 }
 
-function saveSettingsLocal(settings){
+function saveSettingsLocal(settings) {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 }
 
 // Funciones para gestión de usuarios
-async function apiLoadUsers(){
+async function apiLoadUsers() {
   try {
     const snapshot = await usersRef.get();
     const users = {};
@@ -204,7 +204,7 @@ async function apiLoadUsers(){
   }
 }
 
-async function apiSaveUser(username, userData){
+async function apiSaveUser(username, userData) {
   try {
     await usersRef.doc(username).set(userData);
     return true;
@@ -217,7 +217,7 @@ async function apiSaveUser(username, userData){
   }
 }
 
-async function apiDeleteUser(username){
+async function apiDeleteUser(username) {
   try {
     await usersRef.doc(username).delete();
     return true;
@@ -230,16 +230,16 @@ async function apiDeleteUser(username){
   }
 }
 
-function loadUsersLocal(){
+function loadUsersLocal() {
   try { return JSON.parse(localStorage.getItem(USERS_KEY) || '{}'); }
   catch (e) { return {}; }
 }
 
-function saveUsersLocal(users){
+function saveUsersLocal(users) {
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
 }
 
-async function initDefaultUsers(){
+async function initDefaultUsers() {
   const users = await apiLoadUsers();
   if (!users['admin']) {
     await apiSaveUser('admin', { username: 'admin', password: 'admin', role: 'admin' });
@@ -250,11 +250,11 @@ async function initDefaultUsers(){
 }
 
 // Funciones para configuración UI
-async function loadUISettings(){
+async function loadUISettings() {
   const defaults = { appTitle: 'Registro de Ingresos y Egresos', logoUrl: '', primaryColor: '#0d6efd', bgColor: '#f8f9fa', bgImageUrl: '' };
   try {
     const doc = await uiSettingsRef.get();
-    if(doc.exists){
+    if (doc.exists) {
       uiSettings = { ...defaults, ...doc.data() };
       return;
     }
@@ -262,7 +262,7 @@ async function loadUISettings(){
     console.warn('No se pudo cargar configuración UI desde Firestore', e.message || e);
   }
   const local = localStorage.getItem(UI_SETTINGS_KEY);
-  if(local){
+  if (local) {
     try { uiSettings = { ...defaults, ...JSON.parse(local) }; }
     catch (e) { uiSettings = { ...defaults }; }
   } else {
@@ -270,7 +270,7 @@ async function loadUISettings(){
   }
 }
 
-async function saveUISettings(){
+async function saveUISettings() {
   try {
     await uiSettingsRef.set(uiSettings, { merge: true });
   } catch (e) {
@@ -279,10 +279,10 @@ async function saveUISettings(){
   }
 }
 
-function applyUISettings(){
+function applyUISettings() {
   document.getElementById('appTitle').textContent = uiSettings.appTitle || 'Registro de Ingresos y Egresos';
   document.getElementById('loginTitle').textContent = uiSettings.appTitle || 'Iniciar Sesión';
-  
+
   const navLogo = document.getElementById('navLogo');
   const loginLogo = document.getElementById('loginLogo');
   if (uiSettings.logoUrl) {
@@ -294,7 +294,7 @@ function applyUISettings(){
     navLogo.style.display = 'none';
     loginLogo.style.display = 'none';
   }
-  
+
   const customStyles = document.getElementById('customStyles');
   let css = '';
   if (uiSettings.primaryColor) {
@@ -311,21 +311,21 @@ function applyUISettings(){
   customStyles.textContent = css;
 }
 
-async function loadSettings(){
+async function loadSettings() {
   const defaults = { categories: { ingresos: [...defaultCategories.ingresos], egresos: [...defaultCategories.egresos] }, showFutureMonths: true };
   try {
     const doc = await settingsRef.get();
-    if(doc.exists){
+    if (doc.exists) {
       const data = doc.data();
       userSettings = { ...defaults, ...data };
       // Migrar formato antiguo (array) al nuevo (object con ingresos/egresos)
-      if(Array.isArray(userSettings.categories)){
+      if (Array.isArray(userSettings.categories)) {
         userSettings.categories = { ingresos: [...userSettings.categories], egresos: [...defaultCategories.egresos] };
       }
-      if(!userSettings.categories.ingresos || userSettings.categories.ingresos.length === 0){
+      if (!userSettings.categories.ingresos || userSettings.categories.ingresos.length === 0) {
         userSettings.categories.ingresos = [...defaultCategories.ingresos];
       }
-      if(!userSettings.categories.egresos || userSettings.categories.egresos.length === 0){
+      if (!userSettings.categories.egresos || userSettings.categories.egresos.length === 0) {
         userSettings.categories.egresos = [...defaultCategories.egresos];
       }
       return;
@@ -334,10 +334,10 @@ async function loadSettings(){
     console.warn('No se pudo cargar configuración desde Firestore', e.message || e);
   }
   const local = loadSettingsLocal();
-  if(local){
+  if (local) {
     userSettings = { ...defaults, ...local };
     // Migrar formato antiguo si es necesario
-    if(Array.isArray(userSettings.categories)){
+    if (Array.isArray(userSettings.categories)) {
       userSettings.categories = { ingresos: [...userSettings.categories], egresos: [...defaultCategories.egresos] };
     }
   } else {
@@ -345,7 +345,7 @@ async function loadSettings(){
   }
 }
 
-async function saveSettings(){
+async function saveSettings() {
   try {
     await settingsRef.set(userSettings, { merge: true });
   } catch (e) {
@@ -354,28 +354,28 @@ async function saveSettings(){
   }
 }
 
-function getNormalizedType(typeValue){
+function getNormalizedType(typeValue) {
   // Convierte "ingreso"/"egreso" a "ingresos"/"egresos"
   return typeValue === 'egreso' ? 'egresos' : 'ingresos';
 }
 
-function populateCategorySelects(type = 'ingreso'){
+function populateCategorySelects(type = 'ingreso') {
   const normalizedType = getNormalizedType(type);
   const categorySelect = document.getElementById('category');
   const filterCategory = document.getElementById('filterCategory');
   const categories = userSettings.categories[normalizedType] || [];
-  
+
   categorySelect.innerHTML = '';
   // Solo llenar el select del formulario, no el de filtro
   categories.forEach(cat => {
-    if(cat !== 'Otros'){
+    if (cat !== 'Otros') {
       const option = document.createElement('option');
       option.value = cat;
       option.textContent = cat;
       categorySelect.appendChild(option);
     }
   });
-  
+
   const optionOther = document.createElement('option');
   optionOther.value = 'Otra';
   optionOther.textContent = 'Otra...';
@@ -383,17 +383,17 @@ function populateCategorySelects(type = 'ingreso'){
 }
 
 // Nueva función para actualizar el filtro de categorías según el tipo seleccionado
-function updateFilterCategoriesByType(type){
+function updateFilterCategoriesByType(type) {
   const filterType = document.getElementById('filterType');
   const filterCategory = document.getElementById('filterCategory');
   const selectedType = type || filterType.value;
   const normalizedType = getNormalizedType(selectedType);
   const categories = userSettings.categories[normalizedType] || [];
-  
+
   filterCategory.innerHTML = '<option value="">Filtrar por categoría</option>';
-  
+
   categories.forEach(cat => {
-    if(cat !== 'Otros'){
+    if (cat !== 'Otros') {
       const optionFilter = document.createElement('option');
       optionFilter.value = cat;
       optionFilter.textContent = cat;
@@ -402,17 +402,17 @@ function updateFilterCategoriesByType(type){
   });
 }
 
-function renderCategoryList(){
+function renderCategoryList() {
   const list = document.getElementById('categoryList');
   list.innerHTML = '';
   const categoryType = document.getElementById('adminCategoryType').value;
   const categories = userSettings.categories[categoryType] || [];
-  
+
   const typeLabel = document.createElement('div');
   typeLabel.className = 'mb-2 fw-bold text-muted small';
   typeLabel.textContent = categoryType === 'ingresos' ? 'Categorías de Ingresos' : 'Categorías de Egresos';
   list.appendChild(typeLabel);
-  
+
   categories.forEach(cat => {
     const item = document.createElement('li');
     item.className = 'list-group-item d-flex justify-content-between align-items-center';
@@ -421,16 +421,16 @@ function renderCategoryList(){
   });
 }
 
-function getChartWindow(center){
+function getChartWindow(center) {
   const half = Math.floor(CHART_WINDOW_SIZE / 2);
   const months = [];
-  for(let offset = -half; offset <= half; offset++){
+  for (let offset = -half; offset <= half; offset++) {
     months.push(monthOffset(center, offset));
   }
   return months;
 }
 
-function buildMonthOptions(){
+function buildMonthOptions() {
   const select = document.getElementById('chartCenterMonth');
   select.innerHTML = '';
   const now = new Date();
@@ -441,31 +441,31 @@ function buildMonthOptions(){
   const months = [];
   let pointer = rangeStart;
 
-  while(pointer.year < rangeEnd.year || (pointer.year === rangeEnd.year && pointer.month <= rangeEnd.month)){
+  while (pointer.year < rangeEnd.year || (pointer.year === rangeEnd.year && pointer.month <= rangeEnd.month)) {
     months.push({ year: pointer.year, month: pointer.month });
-    if(pointer.month === 12){ pointer = { year: pointer.year + 1, month: 1 }; }
+    if (pointer.month === 12) { pointer = { year: pointer.year + 1, month: 1 }; }
     else { pointer = { year: pointer.year, month: pointer.month + 1 }; }
   }
 
-  const selectedKey = `${selected.year}-${String(selected.month).padStart(2,'0')}`;
-  if(!months.some(m => `${m.year}-${String(m.month).padStart(2,'0')}` === selectedKey)){
+  const selectedKey = `${selected.year}-${String(selected.month).padStart(2, '0')}`;
+  if (!months.some(m => `${m.year}-${String(m.month).padStart(2, '0')}` === selectedKey)) {
     months.push(selected);
   }
 
   months.sort((a, b) => a.year === b.year ? a.month - b.month : a.year - b.year);
   months.forEach(m => {
     const option = document.createElement('option');
-    option.value = `${m.year}-${String(m.month).padStart(2,'0')}`;
+    option.value = `${m.year}-${String(m.month).padStart(2, '0')}`;
     option.textContent = formatMonthLabel(m.year, m.month);
     select.appendChild(option);
   });
 }
 
-function updateChartCenterSelect(){
+function updateChartCenterSelect() {
   const select = document.getElementById('chartCenterMonth');
   const center = getCurrentCenter();
-  const value = `${center.year}-${String(center.month).padStart(2,'0')}`;
-  if(!Array.from(select.options).some(opt => opt.value === value)){
+  const value = `${center.year}-${String(center.month).padStart(2, '0')}`;
+  if (!Array.from(select.options).some(opt => opt.value === value)) {
     const option = document.createElement('option');
     option.value = value;
     option.textContent = formatMonthLabel(center.year, center.month);
@@ -474,39 +474,39 @@ function updateChartCenterSelect(){
   select.value = value;
 }
 
-function setChartCenter(year, month){
+function setChartCenter(year, month) {
   chartCenter = { year, month };
   updateChartCenterSelect();
   refreshChart();
   // Actualizar también el resumen mensual cuando cambia el mes
-  if(window.latestEntries) {
+  if (window.latestEntries) {
     updateSummary(window.latestEntries);
   }
 }
 
-function refreshChart(){
+function refreshChart() {
   const entries = window.latestEntries || [];
   drawCharts(entries);
 }
 
-async function refreshEntries(){
+async function refreshEntries() {
   const entries = await apiLoadEntries();
   window.latestEntries = entries;
   renderEntries(entries);
   await updateSummary(entries);
 }
 
-function safeDateCompare(date, boundary){
+function safeDateCompare(date, boundary) {
   return date.localeCompare(boundary);
 }
 
-async function addEntry(e){
+async function addEntry(e) {
   e.preventDefault();
   const date = document.getElementById('date').value;
   const type = document.getElementById('type').value;
   let category = document.getElementById('category').value;
   const custom = document.getElementById('categoryCustom').value.trim();
-  if(category === 'Otra' && custom) category = custom;
+  if (category === 'Otra' && custom) category = custom;
   const amount = parseFloat(document.getElementById('amount').value) || 0;
   const description = document.getElementById('description').value.trim();
 
@@ -515,7 +515,7 @@ async function addEntry(e){
   }
 
   // Si estamos editando, actualizar en lugar de crear
-  if(window.editingEntryId){
+  if (window.editingEntryId) {
     console.log('Entrando en modo edición, ID:', window.editingEntryId);
     const entry = {
       date: date,
@@ -524,37 +524,37 @@ async function addEntry(e){
       amount: Math.abs(amount),
       description: description
     };
-    
+
     await apiUpdateEntry(entry, window.editingEntryId);
-    
+
     window.editingEntryId = null;
     await refreshEntries();
     document.getElementById('entryForm').reset();
     document.getElementById('categoryCustom').style.display = 'none';
-    
+
     // Restaurar botón guardar
     const saveBtn = document.getElementById('saveBtn');
     saveBtn.textContent = 'Guardar';
     saveBtn.classList.remove('btn-warning');
     saveBtn.classList.add('btn-primary');
-    
+
     // Mostrar mensaje de confirmación
     alert('Registro actualizado exitosamente');
-    
+
     // Volver a la vista de listado/historial con un pequeño delay para asegurar que el alert se cierre
     setTimeout(() => {
       const historyTab = document.querySelector('[data-bs-target="#history-tab"], #history-tab, a[href="#history-tab"]');
-      if(historyTab) {
+      if (historyTab) {
         historyTab.click();
       } else {
         // Fallback: intentar activar la pestaña directamente por ID
         const historyPane = document.getElementById('history-tab');
-        if(historyPane) historyPane.classList.add('active');
+        if (historyPane) historyPane.classList.add('active');
         const recordTab = document.querySelector('a.nav-link[href="#record"], button[data-section="record"]');
-        if(recordTab) recordTab.click();
+        if (recordTab) recordTab.click();
       }
     }, 100);
-    
+
     return;
   }
 
@@ -573,7 +573,7 @@ async function addEntry(e){
   document.getElementById('categoryCustom').style.display = 'none';
 }
 
-async function deleteEntry(id){
+async function deleteEntry(id) {
   if (!confirm('¿Eliminar este registro?')) return;
   console.log('Eliminando entrada con ID:', id);
   console.log('Entradas antes de eliminar:', allEntries.map(e => e.id));
@@ -582,43 +582,43 @@ async function deleteEntry(id){
   await refreshEntries();
 }
 
-async function duplicateEntry(id){
+async function duplicateEntry(id) {
   // Buscar la entrada por el ID recibido (que es el doc.id de Firestore)
   const entry = allEntries.find(e => e.id === id);
-  if(!entry) {
+  if (!entry) {
     console.error('No se encontró entrada con ID:', id);
     return;
   }
-  
+
   // Crear copia sin el campo id, apiSaveEntry asignará el nuevo doc.id
   const { id: _, ...entryData } = entry;
   const newEntry = {
     ...entryData,
     date: new Date().toISOString().split('T')[0]
   };
-  
+
   console.log('Duplicando entrada:', entry.id, '-> nueva entrada:', newEntry);
   await apiSaveEntry(newEntry);
   await refreshEntries();
   alert('Registro duplicado exitosamente');
 }
 
-async function editEntry(id){
+async function editEntry(id) {
   const entry = allEntries.find(e => e.id === id);
-  if(!entry) return;
-  
+  if (!entry) return;
+
   // Cargar los datos en el formulario
   document.getElementById('date').value = entry.date;
   document.getElementById('type').value = entry.type;
   document.getElementById('amount').value = entry.amount;
   document.getElementById('description').value = entry.description || '';
-  
+
   // Manejar categoría
   const categorySelect = document.getElementById('category');
   const categoryCustom = document.getElementById('categoryCustom');
-  
+
   const existingOptions = Array.from(categorySelect.options).map(opt => opt.value);
-  if(existingOptions.includes(entry.category)){
+  if (existingOptions.includes(entry.category)) {
     categorySelect.value = entry.category;
     categoryCustom.style.display = 'none';
   } else {
@@ -626,31 +626,31 @@ async function editEntry(id){
     categoryCustom.value = entry.category;
     categoryCustom.style.display = 'block';
   }
-  
+
   // Cambiar a la pestaña de registro
   const mainTab = document.querySelector('#main-tab');
-  if(mainTab) mainTab.click();
-  
+  if (mainTab) mainTab.click();
+
   // Guardar el ID para actualizar en lugar de crear nuevo
   // IMPORTANTE: Usar el parámetro 'id' que es el doc.id real de Firestore,
   // no entry.id que puede ser un uid() antiguo inconsistente
   window.editingEntryId = id;
-  
+
   // Cambiar texto del botón guardar
   const saveBtn = document.getElementById('saveBtn');
   saveBtn.textContent = 'Actualizar';
   saveBtn.classList.remove('btn-primary');
   saveBtn.classList.add('btn-warning');
-  
+
   console.log('Editando entrada - ID recibido (doc.id):', id, '| entry.id interno:', entry.id, '| editingEntryId:', window.editingEntryId);
 }
 
-function renderEntries(entries){
+function renderEntries(entries) {
   const tbody = document.querySelector('#entriesTable tbody');
   if (!tbody) return; // Si no existe el tbody, salir
   tbody.innerHTML = '';
   const sorted = entries.slice().sort(compareDatesDesc);
-  
+
   for (const e of sorted) {
     const tr = document.createElement('tr');
     const isSelected = selectedEntries.has(e.id);
@@ -670,12 +670,12 @@ function renderEntries(entries){
       </td>`;
     tbody.appendChild(tr);
   }
-  
+
   // Event listeners para checkboxes
   tbody.querySelectorAll('.entry-checkbox').forEach(cb => {
     cb.addEventListener('change', (ev) => {
       const id = ev.currentTarget.dataset.id;
-      if(ev.currentTarget.checked){
+      if (ev.currentTarget.checked) {
         selectedEntries.add(id);
       } else {
         selectedEntries.delete(id);
@@ -688,56 +688,56 @@ function renderEntries(entries){
 // Delegación de eventos para botones de acción (se configura una sola vez)
 document.addEventListener('DOMContentLoaded', () => {
   const tbody = document.querySelector('#entriesTable tbody');
-  if(tbody){
+  if (tbody) {
     tbody.addEventListener('click', (ev) => {
       console.log('Click en tbody:', ev.target, ev.target.tagName);
-      
+
       // Buscar el botón más cercano (puede ser el emoji o el botón mismo)
       const editBtn = ev.target.closest('.edit-btn');
       const duplicateBtn = ev.target.closest('.duplicate-btn');
       const deleteBtn = ev.target.closest('.delete-btn');
-      
-      if(editBtn){
+
+      if (editBtn) {
         ev.preventDefault();
         ev.stopPropagation();
         const id = editBtn.dataset.id;
         console.log('Editar ID:', id);
-        if(id) editEntry(id);
-      } else if(duplicateBtn){
+        if (id) editEntry(id);
+      } else if (duplicateBtn) {
         ev.preventDefault();
         ev.stopPropagation();
         const id = duplicateBtn.dataset.id;
         console.log('Duplicar ID:', id);
-        if(id) duplicateEntry(id);
-      } else if(deleteBtn){
+        if (id) duplicateEntry(id);
+      } else if (deleteBtn) {
         ev.preventDefault();
         ev.stopPropagation();
         const id = deleteBtn.dataset.id;
         console.log('Eliminar ID:', id);
-        if(id) deleteEntry(id);
+        if (id) deleteEntry(id);
       }
     });
   }
 });
 
-function computeMonthlyTotals(entries){
+function computeMonthlyTotals(entries) {
   const map = {};
   entries.forEach(e => {
     const key = monthKey(e.date);
-    if(!map[key]) map[key] = { ingresos: 0, egresos: 0 };
-    if(e.type === 'ingreso') map[key].ingresos += Number(e.amount);
+    if (!map[key]) map[key] = { ingresos: 0, egresos: 0 };
+    if (e.type === 'ingreso') map[key].ingresos += Number(e.amount);
     else map[key].egresos += Number(e.amount);
   });
   return map;
 }
 
-async function updateSummary(entries){
+async function updateSummary(entries) {
   if (!entries) entries = await apiLoadEntries();
   window.latestEntries = entries;
   const map = computeMonthlyTotals(entries);
   const summaryEl = document.getElementById('summary');
   const chartCenterSelect = document.getElementById('chartCenterMonth');
-  
+
   // Usar siempre el mes seleccionado en chartCenterMonth para el resumen mensual
   const selectedMonth = chartCenterSelect.value || '';
   const data = map[selectedMonth] || { ingresos: 0, egresos: 0 };
@@ -747,22 +747,22 @@ async function updateSummary(entries){
   refreshChart();
 }
 
-function drawCharts(entries){
+function drawCharts(entries) {
   const map = computeMonthlyTotals(entries);
   const center = getCurrentCenter();
   const windowMonths = getChartWindow(center);
   const labels = windowMonths.map(m => formatMonthLabel(m.year, m.month));
   const incomes = windowMonths.map(m => {
-    const key = `${m.year}-${String(m.month).padStart(2,'0')}`;
+    const key = `${m.year}-${String(m.month).padStart(2, '0')}`;
     return (map[key] && map[key].ingresos) || 0;
   });
   const expenses = windowMonths.map(m => {
-    const key = `${m.year}-${String(m.month).padStart(2,'0')}`;
+    const key = `${m.year}-${String(m.month).padStart(2, '0')}`;
     return (map[key] && map[key].egresos) || 0;
   });
 
   const ctx = document.getElementById('monthChart').getContext('2d');
-  if(monthChart) monthChart.destroy();
+  if (monthChart) monthChart.destroy();
   monthChart = new Chart(ctx, {
     type: 'bar',
     data: {
@@ -783,7 +783,7 @@ function drawCharts(entries){
   });
 }
 
-function clearFilters(){
+function clearFilters() {
   document.getElementById('filterMonth').value = '';
   document.getElementById('filterStart').value = '';
   document.getElementById('filterEnd').value = '';
@@ -798,7 +798,7 @@ function clearFilters(){
   updateSummaryDisplay();
 }
 
-function applyFilter(){
+function applyFilter() {
   const filterMonth = document.getElementById('filterMonth').value;
   const start = document.getElementById('filterStart').value;
   const end = document.getElementById('filterEnd').value;
@@ -831,86 +831,100 @@ function applyFilter(){
 }
 
 function exportXlsx() {
-    // 1. Obtener los datos directamente de la tabla visible (respeta filtros aplicados)
-    const tableBody = document.querySelector('#entriesTable tbody');
-    if (!tableBody) {
-        return alert('Error: No se encontró la tabla de registros.');
+  // 1. Obtener los datos directamente de la tabla visible (respeta filtros aplicados)
+  const tableBody = document.querySelector('#entriesTable tbody');
+  if (!tableBody) {
+    return alert('Error: No se encontró la tabla de registros.');
+  }
+
+  const rows = tableBody.querySelectorAll('tr');
+
+  if (rows.length === 0) {
+    return alert('No hay registros visibles para exportar. Aplica un filtro o agrega datos.');
+  }
+
+  // Verificar librería
+  if (typeof XLSX === 'undefined') {
+    return alert('Error: La librería de Excel no se ha cargado. Recarga la página.');
+  }
+
+  // Encabezados
+  const data = [['Fecha', 'Tipo', 'Categoría', 'Monto', 'Descripción']];
+
+  // Recorrer filas visibles
+  rows.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    // Asegurarse de que la fila tenga columnas suficientes (ignorar filas vacías o de encabezado si las hubiera)
+    if (cells.length < 6) return;
+
+    const fecha = cells[1].innerText.trim();
+    // Normalizar tipo a minúsculas para comparar
+    const tipoRaw = cells[2].innerText.trim().toLowerCase();
+    const categoria = cells[3].innerText.trim();
+
+    // Limpiar el monto de símbolos de moneda y separadores
+    let montoTexto = cells[4].innerText.replace(/S\/|S\.|\s|,/g, '');
+    let monto = parseFloat(montoTexto);
+
+    if (isNaN(monto)) {
+      monto = 0;
     }
 
-    const rows = tableBody.querySelectorAll('tr');
-
-    if (rows.length === 0) {
-        return alert('No hay registros visibles para exportar. Aplica un filtro o agrega datos.');
+    // CORRECCIÓN CLAVE: Si es egreso, convertir a positivo para Excel
+    if (tipoRaw === 'egreso') {
+      monto = Math.abs(monto);
     }
 
-    // Verificar librería
-    if (typeof XLSX === 'undefined') {
-        return alert('Error: La librería de Excel no se ha cargado. Recarga la página.');
-    }
+    const descripcion = cells[5].innerText.trim();
 
-    // Encabezados
-    const data = [['Fecha', 'Tipo', 'Categoría', 'Monto', 'Descripción']];
+    data.push([
+      fecha,
+      tipoRaw === 'ingreso' ? 'Ingreso' : 'Egreso', // Capitalizar primera letra
+      categoria,
+      monto,
+      descripcion
+    ]);
+  });
 
-    // Recorrer filas visibles
-    rows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        // Asegurarse de que la fila tenga columnas suficientes (ignorar filas vacías o de encabezado si las hubiera)
-        if (cells.length < 6) return;
+  // Crear libro y hoja
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(data);
 
-        const fecha = cells[1].innerText.trim();
-        // Normalizar tipo a minúsculas para comparar
-        const tipoRaw = cells[2].innerText.trim().toLowerCase(); 
-        const categoria = cells[3].innerText.trim();
-        
-        // Limpiar el monto de símbolos de moneda y separadores
-        let montoTexto = cells[4].innerText.replace(/S\/|S\.|\s|,/g, '');
-        let monto = parseFloat(montoTexto);
+  // Ajustar anchos
+  const colWidths = [
+    { wch: 12 }, // Fecha
+    { wch: 10 }, // Tipo
+    { wch: 15 }, // Categoría
+    { wch: 15 }, // Monto
+    { wch: 30 }  // Descripción
+  ];
+  ws['!cols'] = colWidths;
 
-        if (isNaN(monto)) {
-            monto = 0;
-        }
+  XLSX.utils.book_append_sheet(wb, ws, 'Registros');
 
-        // CORRECCIÓN CLAVE: Si es egreso, convertir a positivo para Excel
-        if (tipoRaw === 'egreso') {
-            monto = Math.abs(monto);
-        }
+  //Para nombrar el archivo a descargar: 
+  // 1. Obtener la fecha actual
+  const hoy = new Date();
 
-        const descripcion = cells[5].innerText.trim();
+  // 2. Extraer día, mes y año con ceros a la izquierda si es necesario
+  const dia = String(hoy.getDate()).padStart(2, '0');
+  const mes = String(hoy.getMonth() + 1).padStart(2, '0'); // Los meses van de 0 a 11
+  const anio = String(hoy.getFullYear()).slice(-2); // Obtener los últimos 2 dígitos del año
 
-        data.push([
-            fecha,
-            tipoRaw === 'ingreso' ? 'Ingreso' : 'Egreso', // Capitalizar primera letra
-            categoria,
-            monto, 
-            descripcion
-        ]);
-    });
+  // 3. Formatear como DD/MM/AA
+  const dateStr = `${dia}/${mes}/${anio}`;
 
-    // Crear libro y hoja
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(data);
-
-    // Ajustar anchos
-    const colWidths = [
-        { wch: 12 }, // Fecha
-        { wch: 10 }, // Tipo
-        { wch: 15 }, // Categoría
-        { wch: 15 }, // Monto
-        { wch: 30 }  // Descripción
-    ];
-    ws['!cols'] = colWidths;
-
-    XLSX.utils.book_append_sheet(wb, ws, 'Registros');
+  // 4. Usar la variable en el nombre del archivo
   XLSX.writeFile(wb, `financeML_export_${dateStr}.xlsx`);
 }
 
 
-function printReport(){
+function printReport() {
   // Imprimir solo la tabla de registros, sin filtros ni cabeceras
   window.print();
 }
 
-function renderAdminOptions(){
+function renderAdminOptions() {
   renderCategoryList();
   document.getElementById('enableFutureMonths').checked = !!userSettings.showFutureMonths;
   buildMonthOptions();
@@ -918,16 +932,16 @@ function renderAdminOptions(){
   populateCategorySelects('ingreso');
 }
 
-async function addCategory(){
+async function addCategory() {
   const input = document.getElementById('newCategoryInput');
   const value = input.value.trim();
   const categoryType = document.getElementById('adminCategoryType').value;
-  
+
   if (!value) return;
-  if (userSettings.categories[categoryType].includes(value)){
+  if (userSettings.categories[categoryType].includes(value)) {
     return alert('La categoría ya existe');
   }
-  
+
   userSettings.categories[categoryType].push(value);
   await saveSettings();
   populateCategorySelects(categoryType);
@@ -935,20 +949,20 @@ async function addCategory(){
   input.value = '';
 }
 
-async function removeCategory(category, type){
+async function removeCategory(category, type) {
   userSettings.categories[type] = userSettings.categories[type].filter(c => c !== category);
   await saveSettings();
   populateCategorySelects(type);
   renderCategoryList();
 }
 
-function attachAdminEvents(){
+function attachAdminEvents() {
   document.getElementById('addCategoryBtn').addEventListener('click', addCategory);
   document.getElementById('adminCategoryType').addEventListener('change', ev => {
     renderCategoryList();
   });
   document.getElementById('categoryList').addEventListener('click', async ev => {
-    if(ev.target.classList.contains('remove-category')){
+    if (ev.target.classList.contains('remove-category')) {
       const category = ev.target.dataset.cat;
       const type = ev.target.dataset.type;
       await removeCategory(category, type);
@@ -976,7 +990,7 @@ function attachAdminEvents(){
 }
 
 // Funciones para gestión de usuarios en UI
-async function renderUserList(){
+async function renderUserList() {
   const userList = document.getElementById('userList');
   if (!userList) return;
   userList.innerHTML = '';
@@ -989,7 +1003,7 @@ async function renderUserList(){
     item.innerHTML = `<div><strong>${username}</strong> ${roleBadge}</div><button class="btn btn-sm btn-outline-danger delete-user" data-username="${username}">Eliminar</button>`;
     userList.appendChild(item);
   });
-  
+
   userList.querySelectorAll('.delete-user').forEach(btn => {
     btn.addEventListener('click', async ev => {
       const username = ev.target.dataset.username;
@@ -1005,26 +1019,26 @@ async function renderUserList(){
   });
 }
 
-async function createUser(){
+async function createUser() {
   const usernameInput = document.getElementById('newUsername');
   const passInput = document.getElementById('newUserpass');
   const roleSelect = document.getElementById('newUserRole');
-  
+
   const username = usernameInput.value.trim();
   const password = passInput.value.trim();
   const role = roleSelect.value;
-  
+
   if (!username || !password) {
     alert('Usuario y contraseña son requeridos');
     return;
   }
-  
+
   const users = await apiLoadUsers();
   if (users[username]) {
     alert('El usuario ya existe');
     return;
   }
-  
+
   await apiSaveUser(username, { username, password, role });
   usernameInput.value = '';
   passInput.value = '';
@@ -1032,7 +1046,7 @@ async function createUser(){
   alert('Usuario creado exitosamente');
 }
 
-async function loadUISettingsForm(){
+async function loadUISettingsForm() {
   document.getElementById('uiAppTitle').value = uiSettings.appTitle || '';
   document.getElementById('uiLogoUrl').value = uiSettings.logoUrl || '';
   document.getElementById('uiPrimaryColor').value = uiSettings.primaryColor || '#0d6efd';
@@ -1040,68 +1054,68 @@ async function loadUISettingsForm(){
   document.getElementById('uiBgImageUrl').value = uiSettings.bgImageUrl || '';
 }
 
-async function saveUISettingsForm(){
+async function saveUISettingsForm() {
   uiSettings.appTitle = document.getElementById('uiAppTitle').value.trim() || 'Registro de Ingresos y Egresos';
   uiSettings.logoUrl = document.getElementById('uiLogoUrl').value.trim();
   uiSettings.primaryColor = document.getElementById('uiPrimaryColor').value;
   uiSettings.bgColor = document.getElementById('uiBgColor').value;
   uiSettings.bgImageUrl = document.getElementById('uiBgImageUrl').value.trim();
-  
+
   await saveUISettings();
   applyUISettings();
   alert('Configuración guardada exitosamente');
 }
 
-function resetUISettingsForm(){
+function resetUISettingsForm() {
   uiSettings = { appTitle: 'Registro de Ingresos y Egresos', logoUrl: '', primaryColor: '#0d6efd', bgColor: '#f8f9fa', bgImageUrl: '' };
   loadUISettingsForm();
   saveUISettings();
   applyUISettings();
 }
 
-function attachUIManagementEvents(){
+function attachUIManagementEvents() {
   const createBtn = document.getElementById('createUserBtn');
   if (createBtn) {
     createBtn.addEventListener('click', createUser);
   }
-  
+
   const saveUiBtn = document.getElementById('saveUiSettings');
   if (saveUiBtn) {
     saveUiBtn.addEventListener('click', saveUISettingsForm);
   }
-  
+
   const resetUiBtn = document.getElementById('resetUiSettings');
   if (resetUiBtn) {
     resetUiBtn.addEventListener('click', resetUISettingsForm);
   }
 }
 
-function showAdminPanel(isAdmin){
+function showAdminPanel(isAdmin) {
   const adminOnlyElements = document.querySelectorAll('.admin-only');
   adminOnlyElements.forEach(el => {
     el.style.display = isAdmin ? 'block' : 'none';
   });
 }
 
-async function init(){
+async function init() {
   // Cargar configuración UI primero
   await loadUISettings();
   applyUISettings();
-  
+
   // Inicializar usuarios por defecto
   await initDefaultUsers();
-  
+
   const typeSelect = document.getElementById('type');
-  
+
   typeSelect.addEventListener('change', ev => {
     populateCategorySelects(ev.target.value);
   });
-  
+
   document.getElementById('category').addEventListener('change', ev => {
     const show = ev.target.value === 'Otra';
     document.getElementById('categoryCustom').style.display = show ? 'block' : 'none';
   });
-  
+
   document.getElementById('entryForm').addEventListener('submit', addEntry);
   // Limpiar selección y estado de edición al limpiar formulario
   document.getElementById('clearBtn').addEventListener('click', () => {
@@ -1115,7 +1129,7 @@ async function init(){
   document.getElementById('applyFilter').addEventListener('click', applyFilter);
   document.getElementById('clearFilters').addEventListener('click', clearFilters);
   // Evento para actualizar categorías cuando cambia el tipo en el filtro
-  document.getElementById('filterType').addEventListener('change', function() {
+  document.getElementById('filterType').addEventListener('change', function () {
     updateFilterCategoriesByType();
   });
   document.getElementById('exportXlsx').addEventListener('click', exportXlsx);
@@ -1131,46 +1145,46 @@ async function init(){
 }
 
 // Sistema de autenticación
-async function handleLogin(e){
+async function handleLogin(e) {
   e.preventDefault();
   const username = document.getElementById('loginUser').value.trim();
   const password = document.getElementById('loginPass').value.trim();
   const errorDiv = document.getElementById('loginError');
-  
+
   if (!username || !password) {
     errorDiv.textContent = 'Usuario y contraseña son requeridos';
     errorDiv.classList.remove('d-none');
     return;
   }
-  
+
   const users = await apiLoadUsers();
   const user = users[username];
-  
+
   if (!user || user.password !== password) {
     errorDiv.textContent = 'Usuario o contraseña incorrectos';
     errorDiv.classList.remove('d-none');
     return;
   }
-  
+
   currentUser = { username: user.username, role: user.role };
   localStorage.setItem('currentUser', JSON.stringify(currentUser));
-  
+
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appContainer').style.display = 'block';
-  
+
   document.getElementById('userInfo').textContent = `${user.username} (${user.role === 'admin' ? 'Admin' : 'Usuario'})`;
-  
+
   showAdminPanel(user.role === 'admin');
-  
+
   if (user.role === 'admin') {
     renderUserList();
     loadUISettingsForm();
   }
-  
+
   init();
 }
 
-function handleLogout(){
+function handleLogout() {
   currentUser = null;
   localStorage.removeItem('currentUser');
   document.getElementById('appContainer').style.display = 'none';
@@ -1179,7 +1193,7 @@ function handleLogout(){
   document.getElementById('loginError').classList.add('d-none');
 }
 
-async function checkSession(){
+async function checkSession() {
   const savedUser = localStorage.getItem('currentUser');
   if (savedUser) {
     try {
@@ -1188,17 +1202,17 @@ async function checkSession(){
       if (users[currentUser.username]) {
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('appContainer').style.display = 'block';
-        
+
         const user = users[currentUser.username];
         document.getElementById('userInfo').textContent = `${currentUser.username} (${currentUser.role === 'admin' ? 'Admin' : 'Usuario'})`;
-        
+
         showAdminPanel(currentUser.role === 'admin');
-        
+
         if (currentUser.role === 'admin') {
           renderUserList();
           loadUISettingsForm();
         }
-        
+
         return true;
       }
     } catch (e) {
@@ -1210,11 +1224,11 @@ async function checkSession(){
 
 document.addEventListener('DOMContentLoaded', async () => {
   const hasSession = await checkSession();
-  
+
   if (!hasSession) {
     document.getElementById('loginScreen').style.display = 'block';
     document.getElementById('appContainer').style.display = 'none';
-    
+
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
   } else {
@@ -1226,68 +1240,68 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Función para calcular el resumen filtrado por mes
 //Añade o modifica esta función para que acepte un año y mes específicos:
 function calculateMonthlySummary(year, month) {
-    // Obtener todos los registros (asegúrate de tener 'allEntries' cargado o pásalo como argumento)
-    const entries = allEntries || []; 
-    
-    let ingresos = 0;
-    let egresos = 0;
+  // Obtener todos los registros (asegúrate de tener 'allEntries' cargado o pásalo como argumento)
+  const entries = allEntries || [];
 
-    entries.forEach(entry => {
-        const [eYear, eMonth] = entry.date.split('-').map(Number);
-        
-        // Filtrar solo si coincide el año y el mes
-        if (eYear === year && eMonth === month) {
-            if (entry.type === 'ingreso') {
-                ingresos += parseFloat(entry.amount) || 0;
-            } else if (entry.type === 'egreso') {
-                egresos += parseFloat(entry.amount) || 0;
-            }
-        }
-    });
+  let ingresos = 0;
+  let egresos = 0;
 
-    const balance = ingresos - egresos;
+  entries.forEach(entry => {
+    const [eYear, eMonth] = entry.date.split('-').map(Number);
 
-    return { ingresos, egresos, balance };
+    // Filtrar solo si coincide el año y el mes
+    if (eYear === year && eMonth === month) {
+      if (entry.type === 'ingreso') {
+        ingresos += parseFloat(entry.amount) || 0;
+      } else if (entry.type === 'egreso') {
+        egresos += parseFloat(entry.amount) || 0;
+      }
+    }
+  });
+
+  const balance = ingresos - egresos;
+
+  return { ingresos, egresos, balance };
 }
 
 //Función para actualizar la vista del resumen
 //Esta función leerá el selector y llamará al cálculo:
 function updateSummaryDisplay() {
-    const selector = document.getElementById('chartCenterMonth');
-    if (!selector) return;
+  const selector = document.getElementById('chartCenterMonth');
+  if (!selector) return;
 
-    const selectedValue = selector.value; // Formato "YYYY-MM"
-    if (!selectedValue) return;
+  const selectedValue = selector.value; // Formato "YYYY-MM"
+  if (!selectedValue) return;
 
-    const [year, month] = selectedValue.split('-').map(Number);
-    const summaryData = calculateMonthlySummary(year, month);
+  const [year, month] = selectedValue.split('-').map(Number);
+  const summaryData = calculateMonthlySummary(year, month);
 
-    const summaryDiv = document.getElementById('summary');
-    if (summaryDiv) {
-        // Formatear nombres de meses para el título
-        const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-        const monthName = monthNames[month - 1];
+  const summaryDiv = document.getElementById('summary');
+  if (summaryDiv) {
+    // Formatear nombres de meses para el título
+    const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    const monthName = monthNames[month - 1];
 
-        summaryDiv.innerHTML = `
+    summaryDiv.innerHTML = `
             <div class="row text-center">
                 <div class="col-4">
                     <h6 class="text-success">Ingresos</h6>
-                    <h4>S/ ${summaryData.ingresos.toLocaleString('es-ES', {minimumFractionDigits: 2})}</h4>
+                    <h4>S/ ${summaryData.ingresos.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h4>
                 </div>
                 <div class="col-4">
                     <h6 class="text-danger">Egresos</h6>
-                    <h4>S/ ${summaryData.egresos.toLocaleString('es-ES', {minimumFractionDigits: 2})}</h4>
+                    <h4>S/ ${summaryData.egresos.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h4>
                 </div>
                 <div class="col-4">
                     <h6 class="${summaryData.balance >= 0 ? 'text-primary' : 'text-danger'}">Balance</h6>
-                    <h4>S/ ${summaryData.balance.toLocaleString('es-ES', {minimumFractionDigits: 2})}</h4>
+                    <h4>S/ ${summaryData.balance.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</h4>
                 </div>
             </div>
             <div class="text-center mt-2 text-muted small">
                 Resumen de ${monthName} ${year}
             </div>
         `;
-    }
+  }
 }
 
 
@@ -1295,32 +1309,32 @@ function updateSummaryDisplay() {
 // Dentro de tu función de inicialización...
 const monthSelector = document.getElementById('chartCenterMonth');
 if (monthSelector) {
-    // Escuchar cambios en el selector
-    monthSelector.addEventListener('change', () => {
-        updateSummaryDisplay();
-        renderMonthChart(); // Si también quieres que el gráfico cambie
-    });
-    
-    // Llamar una vez al inicio para cargar el mes actual
+  // Escuchar cambios en el selector
+  monthSelector.addEventListener('change', () => {
     updateSummaryDisplay();
+    renderMonthChart(); // Si también quieres que el gráfico cambie
+  });
+
+  // Llamar una vez al inicio para cargar el mes actual
+  updateSummaryDisplay();
 };
 
 // Funciones para la barra de acciones global (estilo Gmail)
-function updateActionBar(){
+function updateActionBar() {
   const actionBar = document.getElementById('actionBar');
   const selectedCount = document.getElementById('selectedCount');
   const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-  
-  if(selectedEntries.size > 0){
+
+  if (selectedEntries.size > 0) {
     actionBar.style.display = 'block';
   } else {
     actionBar.style.display = 'none';
   }
-  
+
   selectedCount.textContent = selectedEntries.size;
-  
+
   // Actualizar estado del checkbox "Seleccionar todos"
-  if(selectAllCheckbox){
+  if (selectAllCheckbox) {
     const visibleCheckboxes = document.querySelectorAll('.entry-checkbox');
     const allChecked = visibleCheckboxes.length > 0 && Array.from(visibleCheckboxes).every(cb => cb.checked);
     selectAllCheckbox.checked = allChecked;
@@ -1328,26 +1342,26 @@ function updateActionBar(){
   }
 }
 
-async function bulkDelete(){
-  if(selectedEntries.size === 0) return;
-  
-  if(!confirm(`¿Eliminar ${selectedEntries.size} registro(s) seleccionado(s)?`)) return;
-  
-  for(const id of selectedEntries){
+async function bulkDelete() {
+  if (selectedEntries.size === 0) return;
+
+  if (!confirm(`¿Eliminar ${selectedEntries.size} registro(s) seleccionado(s)?`)) return;
+
+  for (const id of selectedEntries) {
     await apiDeleteEntry(id);
   }
-  
+
   selectedEntries.clear();
   updateActionBar();
   await refreshEntries();
 }
 
-async function bulkDuplicate(){
-  if(selectedEntries.size === 0) return;
-  
-  for(const id of selectedEntries){
+async function bulkDuplicate() {
+  if (selectedEntries.size === 0) return;
+
+  for (const id of selectedEntries) {
     const entry = allEntries.find(e => e.id === id);
-    if(entry){
+    if (entry) {
       const newEntry = {
         ...entry,
         id: uid(),
@@ -1356,14 +1370,14 @@ async function bulkDuplicate(){
       await apiSaveEntry(newEntry);
     }
   }
-  
+
   selectedEntries.clear();
   updateActionBar();
   await refreshEntries();
   alert(`${selectedEntries.size} registro(s) duplicado(s) exitosamente`);
 }
 
-function selectAllEntries(){
+function selectAllEntries() {
   const checkboxes = document.querySelectorAll('.entry-checkbox');
   checkboxes.forEach(cb => {
     cb.checked = true;
@@ -1372,7 +1386,7 @@ function selectAllEntries(){
   updateActionBar();
 }
 
-function clearSelection(){
+function clearSelection() {
   const checkboxes = document.querySelectorAll('.entry-checkbox');
   checkboxes.forEach(cb => {
     cb.checked = false;
@@ -1389,26 +1403,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectAllBtn = document.getElementById('selectAllBtn');
   const clearSelectionBtn = document.getElementById('clearSelectionBtn');
   const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-  
-  if(bulkDeleteBtn) bulkDeleteBtn.addEventListener('click', bulkDelete);
-  if(bulkDuplicateBtn) bulkDuplicateBtn.addEventListener('click', bulkDuplicate);
-  if(selectAllBtn) selectAllBtn.addEventListener('click', selectAllEntries);
-  if(clearSelectionBtn) clearSelectionBtn.addEventListener('click', clearSelection);
-  
-  if(selectAllCheckbox){
+
+  if (bulkDeleteBtn) bulkDeleteBtn.addEventListener('click', bulkDelete);
+  if (bulkDuplicateBtn) bulkDuplicateBtn.addEventListener('click', bulkDuplicate);
+  if (selectAllBtn) selectAllBtn.addEventListener('click', selectAllEntries);
+  if (clearSelectionBtn) clearSelectionBtn.addEventListener('click', clearSelection);
+
+  if (selectAllCheckbox) {
     selectAllCheckbox.addEventListener('change', (e) => {
-      if(e.target.checked){
+      if (e.target.checked) {
         selectAllEntries();
       } else {
         clearSelection();
       }
     });
   }
-  
+
   // Manejar botón de editar (redirige al formulario para el primer elemento seleccionado)
-  if(bulkEditBtn){
+  if (bulkEditBtn) {
     bulkEditBtn.addEventListener('click', () => {
-      if(selectedEntries.size > 0){
+      if (selectedEntries.size > 0) {
         const firstId = Array.from(selectedEntries)[0];
         editEntry(firstId);
       }
