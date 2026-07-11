@@ -1,43 +1,81 @@
-# Examples of build artifacts and dependency directories that might need ignoring:
-# Compiled files
+```gitignore
+# Compiled and build artifacts
 *.pyc
-*.class
+__pycache__/
 *.o
+*.obj
+*.class
 *.exe
 *.dll
 *.so
 *.a
-*.obj
 *.out
 
 # Dependencies
 node_modules/
 venv/
 .venv/
-__pycache__/
+.env
+.env.local
+.env.*
+
+# Build directories
 dist/
 build/
 target/
 .gradle/
 
-# Editors
+# Python specific
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
+.Python
+env/
+.venv/
+venv/
+ENV/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git/modules/
+*.sublime-workspace
+
+# Logs
+*.log
+*.tmp
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# System
-.DS_Store
-Thumbs.db
-.env
-.env.local
-*.env.*
-
-# Logs and coverage
-*.log
-coverage/
-htmlcov/
-.coverage
 
 # Compressed files
 *.zip
@@ -58,3 +96,8 @@ htmlcov/
 *.Z
 *.lz
 *.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
+```
