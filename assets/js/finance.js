@@ -29,7 +29,8 @@ function monthKey(dateStr) {
 }
 
 function formatMonthLabel(year, month) {
-  return `${String(month).padStart(2, '0')}/${year}`;
+  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  return months[month - 1] || `${String(month).padStart(2, '0')}/${year}`;
 }
 
 function parseYearMonth(dateStr) {
@@ -888,6 +889,11 @@ function drawCharts(entries) {
           title: {
             display: true,
             text: 'Ingresos/Egresos'
+          },
+          ticks: {
+            callback: function(value) {
+              return 'S/ ' + value.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            }
           }
         },
         y1: {
@@ -899,9 +905,16 @@ function drawCharts(entries) {
           title: {
             display: true,
             text: 'Saldo Acumulado'
+          },
+          ticks: {
+            callback: function(value) {
+              return 'S/ ' + value.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            }
           }
         },
-        x: { grid: { display: false } }
+        x: { 
+          grid: { display: false }
+        }
       }
     }
   });

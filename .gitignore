@@ -18,15 +18,18 @@ __pycache__/
 dist/
 build/
 target/
+.mypy_cache/
+.pytest_cache/
 .gradle/
 
-# Editors and IDEs
+# Editor/IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
+*.tmp
 
-# System and environment
+# System files
 .DS_Store
 Thumbs.db
 .env
@@ -38,10 +41,6 @@ Thumbs.db
 coverage/
 htmlcov/
 .coverage
-
-# MyPy and PyTest cache
-.mypy_cache/
-.pytest_cache/
 
 # Compressed files
 *.zip
