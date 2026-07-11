@@ -299,6 +299,15 @@ async function saveUISettings() {
 function applyUISettings() {
   document.getElementById('appTitle').textContent = uiSettings.appTitle || 'Registro de Ingresos y Egresos';
   
+  // Aplicar logo en login si existe
+  const loginLogo = document.querySelector('#loginScreen img');
+  if (loginLogo && uiSettings.logoUrl) {
+    loginLogo.src = uiSettings.logoUrl;
+    loginLogo.style.display = 'block';
+  } else if (loginLogo) {
+    loginLogo.style.display = 'none';
+  }
+  
   const customStyles = document.getElementById('customStyles');
   let css = '';
   if (uiSettings.primaryColor) {
