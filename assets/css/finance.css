@@ -96,10 +96,25 @@ body {
 }
 
 .chart-sidebar {
-  min-width: 210px;
+  min-width: 180px;
   background: rgba(13,110,253,0.05);
   border: 1px solid rgba(13,110,253,0.12);
   border-radius: 16px;
+}
+
+.chart-sidebar strong {
+  font-size: 0.9rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.chart-sidebar .btn-sm {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.chart-sidebar select {
+  font-size: 0.9rem;
 }
 
 .admin-panel .list-group-item {
@@ -307,11 +322,25 @@ body {
     max-height: 200px;
   }
   
-  /* Sidebar del gráfico - colapsado */
+  /* Sidebar del gráfico - colapsado y más sutil */
   .chart-sidebar {
     margin-top: 1rem !important;
     margin-left: 0 !important;
-    padding: 1rem !important;
+    padding: 0.75rem !important;
+    min-width: auto !important;
+  }
+  
+  .chart-sidebar strong {
+    font-size: 0.85rem !important;
+  }
+  
+  .chart-sidebar .btn-sm {
+    font-size: 0.8rem !important;
+    padding: 0.3rem 0.4rem !important;
+  }
+  
+  .chart-sidebar select {
+    font-size: 0.85rem !important;
   }
   
   /* Títulos más pequeños */
@@ -335,10 +364,25 @@ body {
 /* Estilos específicos para tablets */
 @media (min-width: 769px) and (max-width: 1024px) {
   .device-banner {
-    display: block !important;
-    border-color: #6610f2;
-    background: rgba(102,16,242,0.08);
-    color: #6610f2;
+    display: none !important;
+  }
+  
+  .chart-sidebar {
+    min-width: 160px !important;
+    padding: 0.75rem !important;
+  }
+  
+  .chart-sidebar strong {
+    font-size: 0.85rem !important;
+  }
+  
+  .chart-sidebar .btn-sm {
+    font-size: 0.8rem !important;
+    padding: 0.3rem 0.4rem !important;
+  }
+  
+  .chart-sidebar select {
+    font-size: 0.85rem !important;
   }
   
   .card {

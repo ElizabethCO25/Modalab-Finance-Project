@@ -844,8 +844,11 @@ function drawCharts(entries) {
           fill: false,
           tension: 0.3,
           yAxisID: 'y1',
-          pointRadius: 5,
-          pointHoverRadius: 7
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: 'rgba(13,110,253,1)',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2
         }
       ]
     },
@@ -865,7 +868,12 @@ function drawCharts(entries) {
                 label += ': ';
               }
               if (context.parsed.y !== null) {
-                label += 'S/ ' + context.parsed.y.toLocaleString('es-ES', { minimumFractionDigits: 2 });
+                // Para el saldo final, usar el eje y1
+                if (context.datasetIndex === 2) {
+                  label += 'S/ ' + context.parsed.y.toLocaleString('es-ES', { minimumFractionDigits: 2 }) + ' (eje derecho)';
+                } else {
+                  label += 'S/ ' + context.parsed.y.toLocaleString('es-ES', { minimumFractionDigits: 2 });
+                }
               }
               return label;
             }

@@ -63,7 +63,6 @@
     </nav>
 
     <div class="device-banner alert alert-primary d-none" id="deviceBanner">
-      Interfaz adaptada para iPhone y iPad: vista compacta, botones grandes y resumen rápido.
     </div>
 
     <div class="mb-4">
@@ -141,8 +140,8 @@
                   <span>Resumen mensual</span>
                   <button class="btn btn-sm btn-outline-info" id="toggleAccumulatedBtn" title="Mostrar/Ocultar balance acumulado">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                      <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
+                      <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.199.284-.335.44-.78.927-1.338 1.338C11.879 10.832 10.121 12 8 12s-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                      <circle cx="8" cy="8" r="2"/>
                     </svg>
                     Balance Acumulado
                   </button>
@@ -170,7 +169,7 @@
                     <canvas id="monthChart" height="200"></canvas>
                   </div>
                   <div class="chart-sidebar mt-3 mt-lg-0 ms-lg-3 p-3">
-                    <div class="mb-3">
+                    <div class="mb-2">
                       <strong>Navegador de meses</strong>
                     </div>
                     <button class="btn btn-outline-secondary btn-sm w-100 mb-2" id="prevMonthBtn">← Mes
@@ -178,8 +177,6 @@
                     <select id="chartCenterMonth" class="form-select mb-2"></select>
                     <button class="btn btn-outline-secondary btn-sm w-100 mb-2" id="nextMonthBtn">Mes siguiente
                       →</button>
-                    <div class="text-muted small">Muestra el mes central, su anterior y su siguiente para más espacio de
-                      visualización.</div>
                   </div>
                 </div>
               </div>
