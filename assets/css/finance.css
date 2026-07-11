@@ -96,25 +96,22 @@ body {
 }
 
 .chart-sidebar {
-  min-width: 180px;
-  background: rgba(13,110,253,0.05);
-  border: 1px solid rgba(13,110,253,0.12);
-  border-radius: 16px;
+  min-width: auto;
+  background: transparent;
+  border: none;
 }
 
 .chart-sidebar strong {
-  font-size: 0.9rem;
-  display: block;
-  margin-bottom: 0.5rem;
+  display: none;
 }
 
 .chart-sidebar .btn-sm {
-  font-size: 0.85rem;
-  padding: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.35rem;
 }
 
 .chart-sidebar select {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
 .admin-panel .list-group-item {
@@ -324,23 +321,25 @@ body {
   
   /* Sidebar del gráfico - colapsado y más sutil */
   .chart-sidebar {
-    margin-top: 1rem !important;
+    margin-top: 0.5rem !important;
     margin-left: 0 !important;
-    padding: 0.75rem !important;
+    padding: 0.5rem !important;
     min-width: auto !important;
+    border: none !important;
+    background: transparent !important;
   }
   
   .chart-sidebar strong {
-    font-size: 0.85rem !important;
+    font-size: 0.8rem !important;
   }
   
   .chart-sidebar .btn-sm {
-    font-size: 0.8rem !important;
-    padding: 0.3rem 0.4rem !important;
+    font-size: 0.75rem !important;
+    padding: 0.25rem 0.35rem !important;
   }
   
   .chart-sidebar select {
-    font-size: 0.85rem !important;
+    font-size: 0.8rem !important;
   }
   
   /* Títulos más pequeños */
@@ -368,21 +367,23 @@ body {
   }
   
   .chart-sidebar {
-    min-width: 160px !important;
-    padding: 0.75rem !important;
+    min-width: auto !important;
+    padding: 0.5rem !important;
+    border: none !important;
+    background: transparent !important;
   }
   
   .chart-sidebar strong {
-    font-size: 0.85rem !important;
+    font-size: 0.8rem !important;
   }
   
   .chart-sidebar .btn-sm {
-    font-size: 0.8rem !important;
-    padding: 0.3rem 0.4rem !important;
+    font-size: 0.75rem !important;
+    padding: 0.25rem 0.35rem !important;
   }
   
   .chart-sidebar select {
-    font-size: 0.85rem !important;
+    font-size: 0.8rem !important;
   }
   
   .card {

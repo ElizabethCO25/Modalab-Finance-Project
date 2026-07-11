@@ -870,7 +870,8 @@ function drawCharts(entries) {
               if (context.parsed.y !== null) {
                 // Para el saldo final, usar el eje y1
                 if (context.datasetIndex === 2) {
-                  label += 'S/ ' + context.parsed.y.toLocaleString('es-ES', { minimumFractionDigits: 2 }) + ' (eje derecho)';
+                  const value = Math.round(context.parsed.y * 100) / 100;
+                  label += 'S/ ' + value.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' (eje derecho)';
                 } else {
                   label += 'S/ ' + context.parsed.y.toLocaleString('es-ES', { minimumFractionDigits: 2 });
                 }
