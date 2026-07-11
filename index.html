@@ -137,8 +137,34 @@
           <div class="col-lg-7">
             <div class="card mb-3">
               <div class="card-body">
-                <h5 class="card-title">Resumen mensual</h5>
+                <h5 class="card-title d-flex justify-content-between align-items-center">
+                  <span>Resumen mensual</span>
+                  <button class="btn btn-sm btn-outline-info" id="toggleAccumulatedBtn" title="Mostrar/Ocultar balance acumulado">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                      <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
+                    </svg>
+                    Balance Acumulado
+                  </button>
+                </h5>
                 <div id="summary" class="mb-3"></div>
+                <div id="accumulatedSummary" class="mb-3 p-3 bg-light rounded" style="display:none;">
+                  <h6 class="text-center text-primary mb-3">Balance Acumulado Histórico</h6>
+                  <div class="row text-center">
+                    <div class="col-4">
+                      <small class="text-muted">Total Ingresos</small>
+                      <h5 class="text-success" id="totalIncomes">S/ 0.00</h5>
+                    </div>
+                    <div class="col-4">
+                      <small class="text-muted">Total Egresos</small>
+                      <h5 class="text-danger" id="totalExpenses">S/ 0.00</h5>
+                    </div>
+                    <div class="col-4">
+                      <small class="text-muted">Balance Total</small>
+                      <h5 class="text-primary" id="totalBalance">S/ 0.00</h5>
+                    </div>
+                  </div>
+                </div>
                 <div class="d-flex chart-panel flex-column flex-lg-row align-items-stretch">
                   <div class="chart-area flex-fill">
                     <canvas id="monthChart" height="200"></canvas>
