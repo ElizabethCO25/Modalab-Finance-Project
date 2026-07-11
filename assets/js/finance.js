@@ -15,7 +15,7 @@ const defaultCategories = {
 };
 const CHART_WINDOW_SIZE = 3;
 let userSettings = { categories: { ingresos: [...defaultCategories.ingresos], egresos: [...defaultCategories.egresos] }, showFutureMonths: true };
-let uiSettings = { appTitle: 'Registro de Ingresos y Egresos', logoUrl: '', primaryColor: '#0d6efd', bgColor: '#f8f9fa', bgImageUrl: '' };
+let uiSettings = { appTitle: 'Registro de Ingresos y Egresos', logoUrl: '', logoFile: null, primaryColor: '#0d6efd', bgColor: '#f8f9fa' };
 let chartCenter = null;
 let monthChart = null;
 let allEntries = []; // Variable global para almacenar todos los registros
@@ -259,7 +259,7 @@ async function initDefaultUsers() {
 
 // Funciones para configuración UI
 async function loadUISettings() {
-  const defaults = { appTitle: 'Registro de Ingresos y Egresos', logoUrl: '', primaryColor: '#0d6efd', bgColor: '#f8f9fa', bgImageUrl: '' };
+  const defaults = { appTitle: 'Registro de Ingresos y Egresos', logoUrl: '', logoFile: null, primaryColor: '#0d6efd', bgColor: '#f8f9fa' };
   try {
     const doc = await uiSettingsRef.get();
     if (doc.exists) {
@@ -280,7 +280,9 @@ async function loadUISettings() {
 
 async function saveUISettings() {
   try {
-    await uiSettingsRef.set(uiSettings, { merge: true });
+    // No guardamos logoFile en Firestore porque es un objeto File
+    const settingsToSave = { ...uiSettings, logoFile: null };
+    await uiSettingsRef.set(settingsToSave, { merge: true });
   } catch (e) {
     console.warn('No se pudo guardar configuración UI en Firestore', e.message || e);
     localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify(uiSettings));
@@ -290,6 +292,18 @@ async function saveUISettings() {
 function applyUISettings() {
   document.getElementById('appTitle').textContent = uiSettings.appTitle || 'Registro de Ingresos y Egresos';
   document.getElementById('loginTitle').textContent = uiSettings.appTitle || 'Iniciar Sesión';
+  
+  // Actualizar favicon si hay logo
+  if (uiSettings.logoUrl) {
+    let favicon = document.querySelector("link[rel='icon']");
+    if (!favicon) {
+      favicon = document.createElement('link');
+      favicon.rel = 'icon';
+      favicon.type = 'image/png';
+      document.head.appendChild(favicon);
+    }
+    favicon.href = uiSettings.logoUrl;
+  }
 
   const navLogo = document.getElementById('navLogo');
   const loginLogo = document.getElementById('loginLogo');
@@ -310,11 +324,8 @@ function applyUISettings() {
     css += `.btn-primary { background-color: ${uiSettings.primaryColor}; border-color: ${uiSettings.primaryColor}; } `;
     css += `.navbar-dark .navbar-nav .nav-link.active { color: ${uiSettings.primaryColor}; } `;
   }
-  if (uiSettings.bgColor && !uiSettings.bgImageUrl) {
+  if (uiSettings.bgColor) {
     css += `body { background-color: ${uiSettings.bgColor} !important; } `;
-  }
-  if (uiSettings.bgImageUrl) {
-    css += `body { background-image: url('${uiSettings.bgImageUrl}'); background-size: cover; background-attachment: fixed; background-position: center; } `;
   }
   customStyles.textContent = css;
 }
@@ -423,9 +434,35 @@ function renderCategoryList() {
 
   categories.forEach(cat => {
     const item = document.createElement('li');
-    item.className = 'list-group-item d-flex justify-content-between align-items-center';
-    item.innerHTML = `<span>${cat}</span><button class="btn btn-sm btn-outline-danger remove-category" data-cat="${cat}" data-type="${categoryType}">Eliminar</button>`;
+    item.className = 'list-group-item d-flex justify-content-between align-items-center gap-2 flex-wrap';
+    item.innerHTML = `<span>${cat}</span><div class="d-flex gap-1"><button class="btn btn-sm btn-outline-primary edit-category" data-cat="${cat}" data-type="${categoryType}">Editar</button><button class="btn btn-sm btn-outline-danger remove-category" data-cat="${cat}" data-type="${categoryType}">Eliminar</button></div>`;
     list.appendChild(item);
+  });
+  
+  // Evento para editar categoría
+  list.querySelectorAll('.edit-category').forEach(btn => {
+    btn.addEventListener('click', async ev => {
+      const category = ev.target.dataset.cat;
+      const type = ev.target.dataset.type;
+      
+      const newCategory = prompt('Nuevo nombre para la categoría:', category);
+      if (newCategory === null || newCategory.trim() === '') return;
+      if (newCategory !== category && userSettings.categories[type].includes(newCategory)) {
+        alert('Ya existe una categoría con ese nombre');
+        return;
+      }
+      
+      // Reemplazar categoría en el array
+      const index = userSettings.categories[type].indexOf(category);
+      if (index > -1) {
+        userSettings.categories[type][index] = newCategory.trim();
+        await saveSettings();
+        populateCategorySelects(type === 'ingresos' ? 'ingreso' : 'egreso');
+        updateFilterCategoriesByType(type === 'ingresos' ? 'ingreso' : 'egreso');
+        renderCategoryList();
+        alert('Categoría actualizada exitosamente');
+      }
+    });
   });
 }
 
@@ -1127,7 +1164,8 @@ async function addCategory() {
 
   userSettings.categories[categoryType].push(value);
   await saveSettings();
-  populateCategorySelects(categoryType);
+  populateCategorySelects(categoryType === 'ingresos' ? 'ingreso' : 'egreso');
+  updateFilterCategoriesByType(categoryType === 'ingresos' ? 'ingreso' : 'egreso');
   renderCategoryList();
   input.value = '';
 }
@@ -1135,7 +1173,8 @@ async function addCategory() {
 async function removeCategory(category, type) {
   userSettings.categories[type] = userSettings.categories[type].filter(c => c !== category);
   await saveSettings();
-  populateCategorySelects(type);
+  populateCategorySelects(type === 'ingresos' ? 'ingreso' : 'egreso');
+  updateFilterCategoriesByType(type === 'ingresos' ? 'ingreso' : 'egreso');
   renderCategoryList();
 }
 
@@ -1181,12 +1220,25 @@ async function renderUserList() {
   Object.keys(users).forEach(username => {
     const user = users[username];
     const item = document.createElement('li');
-    item.className = 'list-group-item d-flex justify-content-between align-items-center';
+    item.className = 'list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2';
     const roleBadge = user.role === 'admin' ? '<span class="badge bg-danger">Admin</span>' : '<span class="badge bg-secondary">Usuario</span>';
-    item.innerHTML = `<div><strong>${username}</strong> ${roleBadge}</div><button class="btn btn-sm btn-outline-danger delete-user" data-username="${username}">Eliminar</button>`;
+    const forcePwdBadge = user.forcePasswordChange ? '<span class="badge bg-warning text-dark">Cambio pwd forzado</span>' : '';
+    
+    let buttonsHtml = '';
+    // Botón para editar usuario
+    buttonsHtml += `<button class="btn btn-sm btn-outline-primary edit-user" data-username="${username}">Editar</button>`;
+    // Botón para resetear contraseña
+    buttonsHtml += `<button class="btn btn-sm btn-outline-warning reset-password" data-username="${username}">Reset Contraseña</button>`;
+    // Botón para eliminar (solo si no es el propio usuario)
+    if (username !== currentUser.username) {
+      buttonsHtml += `<button class="btn btn-sm btn-outline-danger delete-user" data-username="${username}">Eliminar</button>`;
+    }
+    
+    item.innerHTML = `<div><strong>${username}</strong> ${roleBadge} ${forcePwdBadge}</div><div class="d-flex gap-1 flex-wrap">${buttonsHtml}</div>`;
     userList.appendChild(item);
   });
 
+  // Evento para eliminar usuario
   userList.querySelectorAll('.delete-user').forEach(btn => {
     btn.addEventListener('click', async ev => {
       const username = ev.target.dataset.username;
@@ -1200,20 +1252,90 @@ async function renderUserList() {
       }
     });
   });
+  
+  // Evento para editar usuario
+  userList.querySelectorAll('.edit-user').forEach(btn => {
+    btn.addEventListener('click', async ev => {
+      const username = ev.target.dataset.username;
+      const users = await apiLoadUsers();
+      const user = users[username];
+      
+      const newUsername = prompt('Nuevo nombre de usuario:', username);
+      if (newUsername === null || newUsername.trim() === '') return;
+      if (newUsername !== username && users[newUsername]) {
+        alert('Ya existe un usuario con ese nombre');
+        return;
+      }
+      
+      const newRole = prompt('Rol (user/admin):', user.role);
+      if (newRole === null || !['user', 'admin'].includes(newRole)) return;
+      
+      // Si cambia el username, crear nuevo y eliminar antiguo
+      if (newUsername !== username) {
+        await apiSaveUser(newUsername, { 
+          username: newUsername, 
+          password: user.password, 
+          role: newRole,
+          forcePasswordChange: user.forcePasswordChange || false
+        });
+        await apiDeleteUser(username);
+      } else {
+        await apiSaveUser(username, { 
+          username, 
+          password: user.password, 
+          role: newRole,
+          forcePasswordChange: user.forcePasswordChange || false
+        });
+      }
+      renderUserList();
+      alert('Usuario actualizado exitosamente');
+    });
+  });
+  
+  // Evento para resetear contraseña
+  userList.querySelectorAll('.reset-password').forEach(btn => {
+    btn.addEventListener('click', async ev => {
+      const username = ev.target.dataset.username;
+      const users = await apiLoadUsers();
+      const user = users[username];
+      
+      const newPassword = prompt('Nueva contraseña para ' + username + ':');
+      if (newPassword === null || newPassword.trim() === '') return;
+      
+      const forceChange = confirm('¿Forzar cambio de contraseña en el próximo login?');
+      
+      await apiSaveUser(username, { 
+        username, 
+        password: newPassword, 
+        role: user.role,
+        forcePasswordChange: forceChange
+      });
+      alert('Contraseña reseteada exitosamente' + (forceChange ? '. El usuario deberá cambiarla en su próximo login.' : ''));
+      renderUserList();
+    });
+  });
 }
 
 async function createUser() {
   const usernameInput = document.getElementById('newUsername');
   const passInput = document.getElementById('newUserpass');
   const roleSelect = document.getElementById('newUserRole');
+  const forcePasswordChangeCheckbox = document.getElementById('forcePasswordChange');
 
   const username = usernameInput.value.trim();
-  const password = passInput.value.trim();
+  let password = passInput.value.trim();
   const role = roleSelect.value;
+  const forcePasswordChange = forcePasswordChangeCheckbox.checked;
 
-  if (!username || !password) {
-    alert('Usuario y contraseña son requeridos');
+  if (!username) {
+    alert('El nombre de usuario es requerido');
     return;
+  }
+  
+  // Si no se proporciona contraseña, generar una aleatoria
+  if (!password) {
+    password = Math.random().toString(36).slice(-8);
+    alert('Se ha generado una contraseña aleatoria: ' + password);
   }
 
   const users = await apiLoadUsers();
@@ -1222,35 +1344,72 @@ async function createUser() {
     return;
   }
 
-  await apiSaveUser(username, { username, password, role });
+  await apiSaveUser(username, { username, password, role, forcePasswordChange });
   usernameInput.value = '';
   passInput.value = '';
+  forcePasswordChangeCheckbox.checked = false;
   renderUserList();
   alert('Usuario creado exitosamente');
 }
 
 async function loadUISettingsForm() {
   document.getElementById('uiAppTitle').value = uiSettings.appTitle || '';
-  document.getElementById('uiLogoUrl').value = uiSettings.logoUrl || '';
   document.getElementById('uiPrimaryColor').value = uiSettings.primaryColor || '#0d6efd';
   document.getElementById('uiBgColor').value = uiSettings.bgColor || '#f8f9fa';
-  document.getElementById('uiBgImageUrl').value = uiSettings.bgImageUrl || '';
+  
+  // Mostrar preview del logo actual si existe
+  const previewDiv = document.getElementById('currentLogoPreview');
+  if (previewDiv) {
+    if (uiSettings.logoUrl) {
+      previewDiv.innerHTML = `<img src="${uiSettings.logoUrl}" alt="Logo actual" style="max-height: 60px; border: 1px solid #ddd; padding: 5px;">`;
+    } else {
+      previewDiv.innerHTML = '';
+    }
+  }
 }
 
 async function saveUISettingsForm() {
   uiSettings.appTitle = document.getElementById('uiAppTitle').value.trim() || 'Registro de Ingresos y Egresos';
-  uiSettings.logoUrl = document.getElementById('uiLogoUrl').value.trim();
   uiSettings.primaryColor = document.getElementById('uiPrimaryColor').value;
   uiSettings.bgColor = document.getElementById('uiBgColor').value;
-  uiSettings.bgImageUrl = document.getElementById('uiBgImageUrl').value.trim();
-
-  await saveUISettings();
-  applyUISettings();
-  alert('Configuración guardada exitosamente');
+  
+  // Manejar la subida del archivo de logo
+  const logoFileInput = document.getElementById('uiLogoFile');
+  if (logoFileInput && logoFileInput.files && logoFileInput.files[0]) {
+    const file = logoFileInput.files[0];
+    // Validar tipo de archivo
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
+    if (!validTypes.includes(file.type)) {
+      alert('Por favor sube un archivo PNG, JPG o SVG válido.');
+      return;
+    }
+    // Validar tamaño (máximo 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('El archivo no debe superar los 2MB.');
+      return;
+    }
+    // Convertir a base64 para guardar en Firestore
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      uiSettings.logoUrl = e.target.result; // Data URL en base64
+      await saveUISettings();
+      applyUISettings();
+      alert('Configuración guardada exitosamente');
+    };
+    reader.onerror = function() {
+      alert('Error al leer el archivo de imagen.');
+    };
+    reader.readAsDataURL(file);
+  } else {
+    // Si no hay nuevo archivo, guardar igual
+    await saveUISettings();
+    applyUISettings();
+    alert('Configuración guardada exitosamente');
+  }
 }
 
 function resetUISettingsForm() {
-  uiSettings = { appTitle: 'Registro de Ingresos y Egresos', logoUrl: '', primaryColor: '#0d6efd', bgColor: '#f8f9fa', bgImageUrl: '' };
+  uiSettings = { appTitle: 'Registro de Ingresos y Egresos', logoUrl: '', logoFile: null, primaryColor: '#0d6efd', bgColor: '#f8f9fa' };
   loadUISettingsForm();
   saveUISettings();
   applyUISettings();
@@ -1347,6 +1506,24 @@ async function handleLogin(e) {
     errorDiv.textContent = 'Usuario o contraseña incorrectos';
     errorDiv.classList.remove('d-none');
     return;
+  }
+
+  // Verificar si debe forzar el cambio de contraseña
+  if (user.forcePasswordChange) {
+    const newPassword = prompt('Debes cambiar tu contraseña antes de continuar. Nueva contraseña:');
+    if (newPassword === null || newPassword.trim() === '') {
+      errorDiv.textContent = 'Es obligatorio cambiar la contraseña';
+      errorDiv.classList.remove('d-none');
+      return;
+    }
+    // Guardar nueva contraseña y quitar flag de forzar cambio
+    await apiSaveUser(username, { ...user, password: newPassword, forcePasswordChange: false });
+    alert('Contraseña actualizada correctamente. Ahora puedes iniciar sesión.');
+    // Recargar datos de usuario
+    const updatedUsers = await apiLoadUsers();
+    const updatedUser = updatedUsers[username];
+    user.password = updatedUser.password;
+    user.forcePasswordChange = false;
   }
 
   currentUser = { username: user.username, role: user.role };

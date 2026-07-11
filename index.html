@@ -181,108 +181,134 @@
       </div>
 
       <div class="tab-pane fade" id="adminTab" role="tabpanel" aria-labelledby="admin-tab">
-        <div class="row">
-          <!-- Panel visible solo para admin -->
-          <div class="col-lg-6 admin-only" style="display:none;">
-            <div class="card mb-3">
-              <div class="card-body admin-panel">
-                <h5 class="card-title">Gestión de Usuarios</h5>
-                <p>Crea y gestiona usuarios del sistema.</p>
+        <!-- Pestañas internas para Admin -->
+        <ul class="nav nav-tabs mb-3" id="adminSubTabs">
+          <li class="nav-item">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#usersTab">Gestión de Usuarios</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#categoriesTab">Gestión de Categorías</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#uiTab">Personalización UI</button>
+          </li>
+        </ul>
 
-                <div class="mb-3">
-                  <label class="form-label">Nuevo Usuario</label>
-                  <input type="text" id="newUsername" class="form-control mb-2" placeholder="Nombre de usuario" />
-                  <input type="password" id="newUserpass" class="form-control mb-2" placeholder="Contraseña" />
-                  <select id="newUserRole" class="form-select mb-2">
-                    <option value="user">Usuario Normal</option>
-                    <option value="admin">Administrador</option>
-                  </select>
-                  <button class="btn btn-primary" id="createUserBtn">Crear Usuario</button>
+        <div class="tab-content" id="adminSubTabContent">
+          <!-- Gestión de Usuarios -->
+          <div class="tab-pane fade show active" id="usersTab" role="tabpanel">
+            <div class="row">
+              <div class="col-lg-6 admin-only" style="display:none;">
+                <div class="card mb-3">
+                  <div class="card-body admin-panel">
+                    <h5 class="card-title">Gestión de Usuarios</h5>
+                    <p>Crea y gestiona usuarios del sistema.</p>
+
+                    <div class="mb-3">
+                      <label class="form-label">Nuevo Usuario</label>
+                      <input type="text" id="newUsername" class="form-control mb-2" placeholder="Nombre de usuario" />
+                      <input type="password" id="newUserpass" class="form-control mb-2" placeholder="Contraseña (opcional)" />
+                      <select id="newUserRole" class="form-select mb-2">
+                        <option value="user">Usuario Normal</option>
+                        <option value="admin">Administrador</option>
+                      </select>
+                      <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="forcePasswordChange" />
+                        <label class="form-check-label" for="forcePasswordChange">Forzar cambio de contraseña en primer login</label>
+                      </div>
+                      <button class="btn btn-primary" id="createUserBtn">Crear Usuario</button>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label">Usuarios Existentes</label>
+                      <ul class="list-group" id="userList"></ul>
+                    </div>
+                  </div>
                 </div>
-
-                <div class="mb-3">
-                  <label class="form-label">Usuarios Existentes</label>
-                  <ul class="list-group" id="userList"></ul>
-                </div>
-              </div>
-            </div>
-
-            <div class="card mb-3">
-              <div class="card-body admin-panel">
-                <h5 class="card-title">Personalización UI</h5>
-                <p>Personaliza la apariencia de la aplicación.</p>
-
-                <div class="mb-3">
-                  <label class="form-label">Título de la Aplicación</label>
-                  <input type="text" id="uiAppTitle" class="form-control" placeholder="Ej: Mi Finanzas" />
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label">URL del Logo</label>
-                  <input type="text" id="uiLogoUrl" class="form-control" placeholder="https://ejemplo.com/logo.png" />
-                  <small class="form-text text-muted">Pega la URL de una imagen para usar como logo</small>
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label">Color Principal</label>
-                  <input type="color" id="uiPrimaryColor" class="form-control form-control-color w-100"
-                    value="#0d6efd" />
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label">Color de Fondo</label>
-                  <input type="color" id="uiBgColor" class="form-control form-control-color w-100" value="#f8f9fa" />
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label">URL de Fondo de Pantalla</label>
-                  <input type="text" id="uiBgImageUrl" class="form-control"
-                    placeholder="https://ejemplo.com/fondo.jpg" />
-                  <small class="form-text text-muted">Imagen de fondo para toda la aplicación</small>
-                </div>
-
-                <button class="btn btn-success" id="saveUiSettings">Guardar Personalización</button>
-                <button class="btn btn-secondary" id="resetUiSettings">Restaurar Valores</button>
               </div>
             </div>
           </div>
 
-          <!-- Panel común para todos los usuarios -->
-          <div class="col-lg-6">
-            <div class="card mb-3">
-              <div class="card-body admin-panel">
-                <h5 class="card-title">Admin - Categorías</h5>
-                <p>Gestiona las categorías disponibles en el formulario y los filtros. Estos cambios se guardan en
-                  Firebase para todos los usuarios.</p>
+          <!-- Gestión de Categorías -->
+          <div class="tab-pane fade" id="categoriesTab" role="tabpanel">
+            <div class="row">
+              <div class="col-lg-6">
+                <div class="card mb-3">
+                  <div class="card-body admin-panel">
+                    <h5 class="card-title">Gestión de Categorías</h5>
+                    <p>Gestiona las categorías disponibles en el formulario y los filtros. Estos cambios se guardan en
+                      Firebase para todos los usuarios.</p>
 
-                <div class="mb-3">
-                  <label class="form-label">Tipo de categoría</label>
-                  <select id="adminCategoryType" class="form-select">
-                    <option value="ingresos">Ingresos</option>
-                    <option value="egresos">Egresos</option>
-                  </select>
-                </div>
+                    <div class="mb-3">
+                      <label class="form-label">Tipo de categoría</label>
+                      <select id="adminCategoryType" class="form-select">
+                        <option value="ingresos">Ingresos</option>
+                        <option value="egresos">Egresos</option>
+                      </select>
+                    </div>
 
-                <div class="mb-3">
-                  <label class="form-label">Nueva categoría</label>
-                  <div class="d-flex gap-2 flex-wrap">
-                    <input type="text" id="newCategoryInput" class="form-control"
-                      placeholder="Introduzca la categoría" />
-                    <button class="btn btn-primary" id="addCategoryBtn">Agregar</button>
+                    <div class="mb-3">
+                      <label class="form-label">Nueva categoría</label>
+                      <div class="d-flex gap-2 flex-wrap">
+                        <input type="text" id="newCategoryInput" class="form-control"
+                          placeholder="Introduzca la categoría" />
+                        <button class="btn btn-primary" id="addCategoryBtn">Agregar</button>
+                      </div>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label">Categorías actuales</label>
+                      <ul class="list-group" id="categoryList"></ul>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label">Configuraciones</label>
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="enableFutureMonths" />
+                        <label class="form-check-label" for="enableFutureMonths">Mostrar meses futuros en el selector de
+                          gráfico</label>
+                      </div>
+                    </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
 
-                <div class="mb-3">
-                  <label class="form-label">Categorías actuales</label>
-                  <ul class="list-group" id="categoryList"></ul>
-                </div>
+          <!-- Personalización UI -->
+          <div class="tab-pane fade" id="uiTab" role="tabpanel">
+            <div class="row">
+              <div class="col-lg-6 admin-only" style="display:none;">
+                <div class="card mb-3">
+                  <div class="card-body admin-panel">
+                    <h5 class="card-title">Personalización UI</h5>
+                    <p>Personaliza la apariencia de la aplicación.</p>
 
-                <div class="mb-3">
-                  <label class="form-label">Configuraciones</label>
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="enableFutureMonths" />
-                    <label class="form-check-label" for="enableFutureMonths">Mostrar meses futuros en el selector de
-                      gráfico</label>
+                    <div class="mb-3">
+                      <label class="form-label">Título de la Aplicación</label>
+                      <input type="text" id="uiAppTitle" class="form-control" placeholder="Ej: Mi Finanzas" />
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label">Logo de la Aplicación</label>
+                      <input type="file" id="uiLogoFile" class="form-control mb-2" accept="image/*" />
+                      <div id="currentLogoPreview" class="mt-2"></div>
+                      <small class="form-text text-muted">Sube un archivo de imagen (PNG, JPG, SVG). Se usará como logo y favicon.</small>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label">Color Principal</label>
+                      <input type="color" id="uiPrimaryColor" class="form-control form-control-color w-100"
+                        value="#0d6efd" />
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label">Color de Fondo</label>
+                      <input type="color" id="uiBgColor" class="form-control form-control-color w-100" value="#f8f9fa" />
+                    </div>
+
+                    <button class="btn btn-success" id="saveUiSettings">Guardar Personalización</button>
+                    <button class="btn btn-secondary" id="resetUiSettings">Restaurar Valores</button>
                   </div>
                 </div>
               </div>
