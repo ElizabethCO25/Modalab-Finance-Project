@@ -1512,8 +1512,14 @@ async function handleLogin(e) {
   const users = await apiLoadUsers();
   const user = users[username];
 
-  if (!user || user.password !== password) {
-    errorDiv.textContent = 'Usuario o contraseña incorrectos';
+  if (!user) {
+    errorDiv.textContent = 'El usuario ingresado no existe';
+    errorDiv.classList.remove('d-none');
+    return;
+  }
+
+  if (user.password !== password) {
+    errorDiv.textContent = 'La contraseña es incorrecta';
     errorDiv.classList.remove('d-none');
     return;
   }
@@ -1623,6 +1629,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+    
+    // Toggle password visibility
+    const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+    const loginPass = document.getElementById('loginPass');
+    const eyeIcon = document.getElementById('eyeIcon');
+    const eyeSlashIcon = document.getElementById('eyeSlashIcon');
+    
+    togglePasswordBtn.addEventListener('click', () => {
+      const isPassword = loginPass.type === 'password';
+      loginPass.type = isPassword ? 'text' : 'password';
+      eyeIcon.style.display = isPassword ? 'none' : 'inline';
+      eyeSlashIcon.style.display = isPassword ? 'inline' : 'none';
+    });
   } else {
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
     // init() ya fue llamado desde checkSession(), no necesitamos hacer nada más aquí

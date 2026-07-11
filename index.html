@@ -34,7 +34,18 @@
               </div>
               <div class="mb-3">
                 <label class="form-label">Contraseña</label>
-                <input type="password" id="loginPass" class="form-control" required autocomplete="current-password">
+                <div class="input-group">
+                  <input type="password" id="loginPass" class="form-control" required autocomplete="current-password">
+                  <button class="btn btn-outline-secondary" type="button" id="togglePasswordBtn" title="Mostrar/Ocultar contraseña">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" id="eyeIcon">
+                      <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.123.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                      <circle cx="8" cy="8" r="3"/>
+                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" id="eyeSlashIcon" style="display:none;">
+                      <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.165.338l2.033 2.033A3.5 3.5 0 0 1 9.5 8c0 .405-.07.793-.196 1.155l3.859 3.859a9.98 9.98 0 0 0 2.196-1.776zM1.699 3.423l2.033 2.033A13.134 13.134 0 0 0 1.172 8c.058.087.123.183.195.288.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.432 0 .851-.043 1.253-.123l2.033 2.033A7.028 7.028 0 0 1 8 14.5c-5 0-8-5.5-8-5.5s1.333-2.42 3.699-4.577zm12.882 1.44L3.42 13.94 2.38 12.9l11.16-11.16 1.04 1.04z"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
               <div class="d-grid">
                 <button type="submit" class="btn btn-primary btn-lg">Ingresar</button>
